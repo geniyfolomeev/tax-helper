@@ -27,10 +27,10 @@ func NewEntrepreneurHandler(service EntrepreneurService) *EntrepreneurHandler {
 	return &EntrepreneurHandler{service: service}
 }
 
-func (h *EntrepreneurHandler) Register(c *gin.Context) {
+func (h *EntrepreneurHandler) Register(ctx *gin.Context) {
 	var req RegisterEntrepreneurRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -42,15 +42,15 @@ func (h *EntrepreneurHandler) Register(c *gin.Context) {
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrValidation) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		if errors.Is(err, domain.ErrEntrepreneurAlreadyExists) {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

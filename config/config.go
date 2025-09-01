@@ -14,6 +14,8 @@ type Config struct {
 	DBMaxIdleConnections int
 
 	HTTPPort string
+
+	BotToken string
 }
 
 func NewConfig() (*Config, error) {
@@ -33,5 +35,6 @@ func NewConfig() (*Config, error) {
 		DBMaxOpenConnections: maxOpenConnections,
 		DBMaxIdleConnections: maxIdleConnections,
 		HTTPPort:             os.Getenv("HTTP_PORT"),
+		BotToken:             os.Getenv("BOT_TOKEN"),
 	}, nil
 }
