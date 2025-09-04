@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"tax-helper/config"
+	"tax-helper/internal/config"
 	"tax-helper/internal/infrastructure/bot"
 	"tax-helper/internal/infrastructure/db"
-	"tax-helper/internal/infrastructure/http"
 	"tax-helper/internal/infrastructure/repository"
+	"tax-helper/internal/logger"
 	"tax-helper/internal/service"
 )
 
@@ -25,10 +25,10 @@ func main() {
 		log.Fatal(err)
 	}
 	entrepreneurRepo := repository.NewEntrepreneurRepo(database.Conn)
-	entrepreneurService := service.NewEntrepreneurService(entrepreneurRepo)
+	tasksRepo := repository.NewTasksRepo(database.Conn)
+	entrepreneurService := service.NewEntrepreneurService(entrepreneurRepo, tasksRepo)
 
-	srv := http.NewServer(cfg, entrepreneurService)
-	tgBot, err := bot.NewBot(cfg)
+	tgBot, err := bot.NewBot(cfg, entrepreneurService)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,14 +37,6 @@ func main() {
 	defer cancel()
 
 	wg := &sync.WaitGroup{}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err = srv.Run(ctx); err != nil {
-			log.Fatal(err)
-		}
-	}()
 
 	wg.Add(1)
 	go func() {
@@ -59,7 +51,7 @@ func main() {
 
 	select {
 	case <-sig:
-		log.Println("shutting down...")
+		logger.Info("shutting down...")
 		cancel()
 	case <-ctx.Done():
 	}

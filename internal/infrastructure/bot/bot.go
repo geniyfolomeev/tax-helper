@@ -2,18 +2,27 @@ package bot
 
 import (
 	"context"
-	"tax-helper/config"
-	"tax-helper/internal/infrastructure/bot/handlers"
+	"log"
+	"tax-helper/internal/config"
+	"tax-helper/internal/infrastructure/bot/commands"
+	"tax-helper/internal/logger"
+	"tax-helper/internal/service"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type Bot struct {
-	api     *tgbotapi.BotAPI
-	updates tgbotapi.UpdatesChannel
+type handler interface {
+	Command() tgbotapi.BotCommand
+	Handle(api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error)
 }
 
-func NewBot(cfg *config.Config) (*Bot, error) {
+type Bot struct {
+	api          *tgbotapi.BotAPI
+	updates      tgbotapi.UpdatesChannel
+	cmdToHandler map[string]handler
+}
+
+func NewBot(cfg *config.Config, e *service.EntrepreneurService) (*Bot, error) {
 	botApi, err := tgbotapi.NewBotAPI(cfg.BotToken)
 	if err != nil {
 		return nil, err
@@ -21,36 +30,57 @@ func NewBot(cfg *config.Config) (*Bot, error) {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	//botCfg := tgbotapi.SetMyCommandsConfig{
-	//	Commands:     nil,
-	//	Scope:        nil,
-	//	LanguageCode: "",
-	//}
-	//_, err = botApi.Request(botCfg)
-	//if err != nil {
-	//	return nil, err
-	//}
+	handlers := []handler{
+		commands.NewStartHandler(),
+		commands.NewHelpHandler(),
+		commands.NewRegisterHandler(e),
+	}
+	cmdToHandler := map[string]handler{}
+	cfgCommands := make([]tgbotapi.BotCommand, 0, len(handlers))
+	for _, h := range handlers {
+		cfgCommands = append(cfgCommands, h.Command())
+		cmdToHandler[h.Command().Command] = h
+	}
+
+	botCfg := tgbotapi.SetMyCommandsConfig{
+		Commands: cfgCommands,
+	}
+	_, err = botApi.Request(botCfg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Bot{
-		api:     botApi,
-		updates: botApi.GetUpdatesChan(u),
+		api:          botApi,
+		updates:      botApi.GetUpdatesChan(u),
+		cmdToHandler: cmdToHandler,
 	}, nil
 }
 
+func (bot *Bot) handleUpdate(update tgbotapi.Update) {
+	if update.Message == nil {
+		return
+	}
+	h, ok := bot.cmdToHandler[update.Message.Command()]
+	if !ok {
+		// TODO: default handler
+		return
+	}
+	_, err := h.Handle(bot.api, update.Message)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func (bot *Bot) Run(ctx context.Context) error {
+	logger.Info("bot started")
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Info("bot stopped")
 			return nil
 		case update := <-bot.updates:
-			if update.Message == nil {
-				continue
-			}
-			switch update.Message.Command() {
-			case "start":
-				handlers.HandleStart(bot.api, update.Message)
-			default:
-				handlers.HandleDefault(bot.api, update.Message)
-			}
+			bot.handleUpdate(update)
 		}
 	}
 }

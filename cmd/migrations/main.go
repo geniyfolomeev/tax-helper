@@ -2,8 +2,9 @@ package main
 
 import (
 	"log"
-	"tax-helper/config"
+	"tax-helper/internal/config"
 	"tax-helper/internal/infrastructure/db"
+	"tax-helper/internal/logger"
 )
 
 func main() {
@@ -20,5 +21,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Migration completed")
+	logger.Info("Migrations completed")
 }

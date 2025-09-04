@@ -11,10 +11,11 @@ import (
 )
 
 type Entrepreneur struct {
-	ID               uint `gorm:"primaryKey"` // Telegram ID
-	Status           string
-	RegistrationDate time.Time
-	YearTotalAmount  float64
+	ID              uint `gorm:"primaryKey"` // Telegram ID
+	Status          string
+	RegisteredAt    time.Time
+	LastSentAt      time.Time
+	YearTotalAmount float64
 }
 
 type EntrepreneurRepo struct {
@@ -27,10 +28,11 @@ func NewEntrepreneurRepo(db *gorm.DB) *EntrepreneurRepo {
 
 func (r *EntrepreneurRepo) Create(e *domain.Entrepreneur) error {
 	model := &Entrepreneur{
-		ID:               e.TelegramID,
-		Status:           e.Status,
-		RegistrationDate: e.RegistrationDate,
-		YearTotalAmount:  e.YearTotalAmount,
+		ID:              e.TelegramID,
+		Status:          e.Status,
+		RegisteredAt:    e.RegisteredAt,
+		LastSentAt:      e.LastSentAt,
+		YearTotalAmount: e.YearTotalAmount,
 	}
 	err := r.db.Create(model).Error
 	if err != nil {
@@ -52,9 +54,10 @@ func (r *EntrepreneurRepo) GetByID(id uint) (*domain.Entrepreneur, error) {
 	}
 
 	return &domain.Entrepreneur{
-		TelegramID:       e.ID,
-		Status:           e.Status,
-		RegistrationDate: e.RegistrationDate,
-		YearTotalAmount:  e.YearTotalAmount,
+		TelegramID:      e.ID,
+		Status:          e.Status,
+		RegisteredAt:    e.RegisteredAt,
+		YearTotalAmount: e.YearTotalAmount,
+		LastSentAt:      e.LastSentAt,
 	}, nil
 }

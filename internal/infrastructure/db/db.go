@@ -1,7 +1,7 @@
 package db
 
 import (
-	"tax-helper/config"
+	"tax-helper/internal/config"
 	"tax-helper/internal/infrastructure/repository"
 
 	"gorm.io/driver/postgres"
@@ -27,5 +27,5 @@ func NewDB(cfg *config.Config) (*DB, error) {
 }
 
 func (db *DB) Migrate() error {
-	return db.Conn.AutoMigrate(&repository.Entrepreneur{})
+	return db.Conn.AutoMigrate(&repository.Entrepreneur{}, &repository.Tasks{})
 }

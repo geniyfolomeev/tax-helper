@@ -1,9 +1,9 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strconv"
+	"tax-helper/internal/logger"
 
 	"github.com/joho/godotenv"
 )
@@ -13,14 +13,12 @@ type Config struct {
 	DBMaxOpenConnections int
 	DBMaxIdleConnections int
 
-	HTTPPort string
-
 	BotToken string
 }
 
 func NewConfig() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system env")
+		logger.Warn("No .env file found, using system env")
 	}
 	maxOpenConnections, err := strconv.Atoi(os.Getenv("DB_MAX_OPEN_CONNECTIONS"))
 	if err != nil {
@@ -34,7 +32,6 @@ func NewConfig() (*Config, error) {
 		DBDsn:                os.Getenv("DB_DSN"),
 		DBMaxOpenConnections: maxOpenConnections,
 		DBMaxIdleConnections: maxIdleConnections,
-		HTTPPort:             os.Getenv("HTTP_PORT"),
 		BotToken:             os.Getenv("BOT_TOKEN"),
 	}, nil
 }
