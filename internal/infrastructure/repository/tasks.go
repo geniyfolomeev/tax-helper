@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"tax-helper/internal/domain"
 	"time"
 
 	"gorm.io/gorm"
@@ -21,17 +20,4 @@ type TasksRepo struct {
 
 func NewTasksRepo(db *gorm.DB) *TasksRepo {
 	return &TasksRepo{db: db}
-}
-
-func (r *TasksRepo) CreateBatch(tasks []*domain.Task) error {
-	models := make([]*Tasks, len(tasks))
-	for i, t := range tasks {
-		models[i] = &Tasks{
-			TelegramID: t.TelegramID,
-			Status:     t.Status,
-			Type:       t.Type,
-			RunAt:      t.RunAt,
-		}
-	}
-	return r.db.Create(&models).Error
 }

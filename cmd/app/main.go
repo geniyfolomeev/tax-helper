@@ -25,8 +25,8 @@ func main() {
 		log.Fatal(err)
 	}
 	entrepreneurRepo := repository.NewEntrepreneurRepo(database.Conn)
-	tasksRepo := repository.NewTasksRepo(database.Conn)
-	entrepreneurService := service.NewEntrepreneurService(entrepreneurRepo, tasksRepo)
+	entrepreneurTasksRepo := repository.NewEntrepreneurTasksRepo(database.Conn)
+	entrepreneurService := service.NewEntrepreneurService(entrepreneurRepo, entrepreneurTasksRepo)
 
 	tgBot, err := bot.NewBot(cfg, entrepreneurService)
 	if err != nil {

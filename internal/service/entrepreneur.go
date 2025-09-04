@@ -7,23 +7,21 @@ import (
 
 type EntrepreneurRepo interface {
 	GetByID(id uint) (*domain.Entrepreneur, error)
-	Create(e *domain.Entrepreneur) error
 }
 
-type TasksRepo interface {
-	CreateBatch(tasks []*domain.Task) error
+type EntrepreneurTasksRepo interface {
+	Create(e *domain.Entrepreneur, tasks []*domain.Task) error
 }
 
 type EntrepreneurService struct {
-	EntrepreneurRepo EntrepreneurRepo
-	TasksRepo        TasksRepo
+	EntrepreneurRepo      EntrepreneurRepo
+	EntrepreneurTasksRepo EntrepreneurTasksRepo
 }
 
-func NewEntrepreneurService(e EntrepreneurRepo, t TasksRepo) *EntrepreneurService {
-	return &EntrepreneurService{EntrepreneurRepo: e, TasksRepo: t}
+func NewEntrepreneurService(e EntrepreneurRepo, et EntrepreneurTasksRepo) *EntrepreneurService {
+	return &EntrepreneurService{EntrepreneurRepo: e, EntrepreneurTasksRepo: et}
 }
 
-// TODO: транзакции!
 func (s *EntrepreneurService) CreateEntrepreneur(e *domain.Entrepreneur) error {
 	err := e.Validate()
 	if err != nil {
@@ -33,12 +31,8 @@ func (s *EntrepreneurService) CreateEntrepreneur(e *domain.Entrepreneur) error {
 	if err != nil && !errors.Is(err, domain.ErrEntrepreneurNotFound) {
 		return err
 	}
-	err = s.EntrepreneurRepo.Create(e)
-	if err != nil {
-		return err
-	}
 	nextDeclarationDate := e.CalculateNextDeclarationDate()
 	addIncomeTask := domain.NewTask(e.TelegramID, "ready", "add_income", nextDeclarationDate)
 	submitDeclarationTask := domain.NewTask(e.TelegramID, "ready", "submit declaration", nextDeclarationDate)
-	return s.TasksRepo.CreateBatch([]*domain.Task{addIncomeTask, submitDeclarationTask})
+	return s.EntrepreneurTasksRepo.Create(e, []*domain.Task{addIncomeTask, submitDeclarationTask})
 }
