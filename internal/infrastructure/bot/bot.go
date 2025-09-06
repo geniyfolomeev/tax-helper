@@ -72,6 +72,25 @@ func (bot *Bot) handleUpdate(update tgbotapi.Update) {
 	}
 }
 
+func (bot *Bot) SendMessage(chatID uint, text string) error {
+	msg := tgbotapi.NewMessage(int64(chatID), text)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("Паника при отправке сообщения в чат %d: %v", chatID, r)
+			}
+		}()
+
+		_, err := bot.api.Send(msg)
+		if err != nil {
+			logger.Error("Ошибка отправки сообщения в чат %d: %v", chatID, err)
+		}
+	}()
+
+	return nil
+}
+
 func (bot *Bot) Run(ctx context.Context) error {
 	logger.Info("bot started")
 	for {
