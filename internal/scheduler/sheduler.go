@@ -13,13 +13,15 @@ type Scheduler struct {
 	service  *service.TasksService
 	interval time.Duration
 	bot      *bot.Bot
+	logger   logger.Logger
 }
 
-func NewScheduler(service *service.TasksService, interval time.Duration, bot *bot.Bot) *Scheduler {
+func NewScheduler(service *service.TasksService, interval time.Duration, bot *bot.Bot, log logger.Logger) *Scheduler {
 	return &Scheduler{
 		service:  service,
 		interval: interval,
 		bot:      bot,
+		logger:   log,
 	}
 }
 
@@ -39,7 +41,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 
 				tasks, err := s.service.GetDueTasks(ctx)
 				if err != nil {
-					logger.Error("Ошибка при пометке:", err)
+					s.logger.Error("Ошибка при пометке:", err)
 					continue
 				}
 
@@ -49,12 +51,12 @@ func (s *Scheduler) Start(ctx context.Context) {
 
 				for _, task := range tasks {
 					if err := s.bot.SendMessage(task.TelegramID, "Заглушка по отпрравке деклеарации"); err != nil {
-						logger.Error("Ошибка при пометке:", err)
+						s.logger.Error("Ошибка при пометке:", err)
 						continue
 					}
 
 					if err := s.service.CompleteNotification(ctx, task.ID); err != nil {
-						logger.Error("Ошибка при пометке:", err)
+						s.logger.Error("Ошибка при пометке:", err)
 					}
 				}
 			}

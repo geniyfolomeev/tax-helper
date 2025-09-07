@@ -18,10 +18,11 @@ const usageExample = "/register DD.MM.YYYY AMOUNT [LAST_SENT_DATE]"
 
 type RegisterHandler struct {
 	service *service.TaxService
+	logger  logger.Logger
 }
 
-func NewRegisterHandler(s *service.TaxService) *RegisterHandler {
-	return &RegisterHandler{service: s}
+func NewRegisterHandler(s *service.TaxService, l logger.Logger) *RegisterHandler {
+	return &RegisterHandler{service: s, logger: l}
 }
 
 func (h *RegisterHandler) Command() tgbotapi.BotCommand {
@@ -76,7 +77,7 @@ func (h *RegisterHandler) Handle(ctx context.Context, api *tgbotapi.BotAPI, msg 
 			reply := tgbotapi.NewMessage(msg.Chat.ID, err.Error())
 			return api.Send(reply)
 		}
-		logger.Error(err.Error())
+		h.logger.Error(err.Error())
 		reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("Something went totally wrong: %s", err.Error()))
 		return api.Send(reply)
 	}

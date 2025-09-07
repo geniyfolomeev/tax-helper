@@ -19,9 +19,10 @@ type Bot struct {
 	api          *tgbotapi.BotAPI
 	updates      tgbotapi.UpdatesChannel
 	cmdToHandler map[string]handler
+	logger       logger.Logger
 }
 
-func NewBot(cfg *config.Config, ts *service.TaxService) (*Bot, error) {
+func NewBot(cfg *config.Config, ts *service.TaxService, log logger.Logger) (*Bot, error) {
 	botApi, err := tgbotapi.NewBotAPI(cfg.BotToken)
 	if err != nil {
 		return nil, err
@@ -32,7 +33,7 @@ func NewBot(cfg *config.Config, ts *service.TaxService) (*Bot, error) {
 	handlers := []handler{
 		commands.NewStartHandler(),
 		commands.NewHelpHandler(),
-		commands.NewRegisterHandler(ts),
+		commands.NewRegisterHandler(ts, log),
 	}
 	cmdToHandler := map[string]handler{}
 	cfgCommands := make([]tgbotapi.BotCommand, 0, len(handlers))
@@ -53,6 +54,7 @@ func NewBot(cfg *config.Config, ts *service.TaxService) (*Bot, error) {
 		api:          botApi,
 		updates:      botApi.GetUpdatesChan(u),
 		cmdToHandler: cmdToHandler,
+		logger:       log,
 	}, nil
 }
 
@@ -67,7 +69,7 @@ func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	}
 	_, err := h.Handle(ctx, bot.api, update.Message)
 	if err != nil {
-		logger.Error(err.Error())
+		bot.logger.Error(err.Error())
 	}
 }
 
@@ -77,13 +79,13 @@ func (bot *Bot) SendMessage(chatID uint, text string) error {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				logger.Error("Паника при отправке сообщения в чат %d: %v", chatID, r)
+				bot.logger.Error("Паника при отправке сообщения в чат %d: %v", chatID, r)
 			}
 		}()
 
 		_, err := bot.api.Send(msg)
 		if err != nil {
-			logger.Error("Ошибка отправки сообщения в чат %d: %v", chatID, err)
+			bot.logger.Error("Ошибка отправки сообщения в чат %d: %v", chatID, err)
 		}
 	}()
 
@@ -91,11 +93,11 @@ func (bot *Bot) SendMessage(chatID uint, text string) error {
 }
 
 func (bot *Bot) Run(ctx context.Context) error {
-	logger.Info("bot started")
+	bot.logger.Info("bot started")
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Info("bot stopped")
+			bot.logger.Info("bot stopped")
 			return nil
 		case update := <-bot.updates:
 			bot.handleUpdate(ctx, update)

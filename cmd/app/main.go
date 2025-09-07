@@ -11,7 +11,7 @@ import (
 	"tax-helper/internal/infrastructure/bot"
 	"tax-helper/internal/infrastructure/db"
 	"tax-helper/internal/infrastructure/repository"
-	"tax-helper/internal/logger"
+	logging "tax-helper/internal/logger"
 	"tax-helper/internal/scheduler"
 	"tax-helper/internal/service"
 	"time"
@@ -22,6 +22,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	logger, err := logging.NewLogger(cfg.LoggingMode)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logger.Sync()
 
 	database, err := db.NewDB(cfg)
 	if err != nil {
@@ -36,7 +42,7 @@ func main() {
 	taxService := service.NewTaxService(entrepreneurRepo, tasksRepo, txManager)
 	tasksService := service.NewTaskService(tasksRepo)
 
-	tgBot, err := bot.NewBot(cfg, taxService)
+	tgBot, err := bot.NewBot(cfg, taxService, logger)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,7 +60,7 @@ func main() {
 		}
 	}()
 
-	s := scheduler.NewScheduler(tasksService, time.Hour, tgBot)
+	s := scheduler.NewScheduler(tasksService, time.Hour, tgBot, logger)
 	s.Start(ctx)
 
 	sig := make(chan os.Signal, 1)

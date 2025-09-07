@@ -1,18 +1,24 @@
 package logger
 
-import (
-	"fmt"
-	"time"
-)
+import "go.uber.org/zap"
 
-func Info(msg string, args ...any) {
-	fmt.Printf("%s [INFO] %s\n", time.Now().Format(time.RFC3339), fmt.Sprintf(msg, args...))
+type Logger interface {
+	Info(args ...any)
+	Warn(args ...any)
+	Error(args ...any)
+	Debug(args ...any)
+	Fatal(args ...any)
 }
 
-func Warn(msg string, args ...any) {
-	fmt.Printf("%s [WARN] %s\n", time.Now().Format(time.RFC3339), fmt.Sprintf(msg, args...))
-}
+func NewLogger(mode string) (*zap.SugaredLogger, error) {
+	initLoggerFunc := zap.NewProduction
+	if mode != "prod" {
+		initLoggerFunc = zap.NewDevelopment
+	}
 
-func Error(msg string, args ...any) {
-	fmt.Printf("%s [ERROR] %s\n", time.Now().Format(time.RFC3339), fmt.Sprintf(msg, args...))
+	l, err := initLoggerFunc()
+	if err != nil {
+		return nil, err
+	}
+	return l.Sugar(), nil
 }
