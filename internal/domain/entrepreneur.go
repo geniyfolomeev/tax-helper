@@ -32,8 +32,23 @@ func NewEntrepreneur(tgID uint, status string, regAt, lastAt time.Time, yta floa
 }
 
 func (e *Entrepreneur) Validate() error {
-	if time.Now().Before(e.RegisteredAt) {
-		return fmt.Errorf("%w: registration date is in the future", ErrValidation)
+	if e.YearTotalAmount < 0 {
+		return fmt.Errorf("%w: yearly amount cannot be negative", ErrValidation)
+	}
+	if currentTimeFn().Before(e.RegisteredAt) {
+		return fmt.Errorf("%w: registration date cannot be in the future", ErrValidation)
+	}
+	if e.LastSentAt.IsZero() && e.YearTotalAmount > 0 {
+		return fmt.Errorf("%w: yearly amount must be zero until the first declaration is sent", ErrValidation)
+	}
+	if !e.LastSentAt.IsZero() && e.YearTotalAmount == 0 {
+		return fmt.Errorf("%w: yearly amount cannot be zero after at least one declaration has been sent", ErrValidation)
+	}
+	if !e.LastSentAt.IsZero() && e.RegisteredAt.After(e.LastSentAt) {
+		return fmt.Errorf("%w: registration date cannot be after your last declaration", ErrValidation)
+	}
+	if !e.LastSentAt.IsZero() && e.LastSentAt.After(currentTimeFn()) {
+		return fmt.Errorf("%w: last declaration date cannot be in the future", ErrValidation)
 	}
 	return nil
 }

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -13,30 +14,30 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-const usageExample = "/register DD.MM.YYYY AMOUNT"
+const usageExample = "/register DD.MM.YYYY AMOUNT [LAST_SENT_DATE]"
 
 type RegisterHandler struct {
-	service *service.EntrepreneurService
+	service *service.TaxService
 }
 
-func NewRegisterHandler(s *service.EntrepreneurService) *RegisterHandler {
+func NewRegisterHandler(s *service.TaxService) *RegisterHandler {
 	return &RegisterHandler{service: s}
 }
 
 func (h *RegisterHandler) Command() tgbotapi.BotCommand {
 	return tgbotapi.BotCommand{
-		Command:     "register",
-		Description: fmt.Sprintf("Start registration, usage: %s", usageExample),
+		Command: "register",
+		Description: fmt.Sprintf(
+			"Register as entrepreneur.\nUsage: %s\n"+
+				"- DD.MM.YYYY = registration date\n"+
+				"- AMOUNT = total income so far (number)\n"+
+				"- LAST_SENT_DATE = optional, last declaration date (DD.MM.YYYY)",
+			usageExample,
+		),
 	}
 }
 
-func (h *RegisterHandler) Handle(api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error) {
-	_, err := h.service.EntrepreneurRepo.GetByID(uint(msg.Chat.ID))
-	if err == nil || !errors.Is(err, domain.ErrEntrepreneurNotFound) {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, "You are already registered")
-		return api.Send(reply)
-	}
-
+func (h *RegisterHandler) Handle(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error) {
 	args := strings.Fields(msg.CommandArguments())
 	if len(args) < 2 || len(args) > 3 {
 		reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("Wrong number of arguments, usage: %s", usageExample))
@@ -65,11 +66,13 @@ func (h *RegisterHandler) Handle(api *tgbotapi.BotAPI, msg *tgbotapi.Message) (t
 		lastSentAt = t
 	}
 
-	entrepreneur := domain.NewEntrepreneur(uint(msg.Chat.ID), "active", registeredAt, lastSentAt, amount)
-	err = h.service.CreateEntrepreneur(entrepreneur)
-
+	err = h.service.CreateEntrepreneur(ctx, uint(msg.Chat.ID), registeredAt, lastSentAt, amount)
 	if err != nil {
 		if errors.Is(err, domain.ErrValidation) {
+			reply := tgbotapi.NewMessage(msg.Chat.ID, err.Error())
+			return api.Send(reply)
+		}
+		if errors.Is(err, domain.ErrEntrepreneurAlreadyExists) {
 			reply := tgbotapi.NewMessage(msg.Chat.ID, err.Error())
 			return api.Send(reply)
 		}

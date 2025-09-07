@@ -24,11 +24,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	entrepreneurRepo := repository.NewEntrepreneurRepo(database.Conn)
-	entrepreneurTasksRepo := repository.NewEntrepreneurTasksRepo(database.Conn)
-	entrepreneurService := service.NewEntrepreneurService(entrepreneurRepo, entrepreneurTasksRepo)
 
-	tgBot, err := bot.NewBot(cfg, entrepreneurService)
+	txManager := db.NewTxManager(database.DefaultConnection())
+
+	entrepreneurRepo := repository.NewEntrepreneurRepo(database)
+	tasksRepo := repository.NewTasksRepo(database)
+	taxService := service.NewTaxService(entrepreneurRepo, tasksRepo, txManager)
+
+	tgBot, err := bot.NewBot(cfg, taxService)
 	if err != nil {
 		log.Fatal(err)
 	}
