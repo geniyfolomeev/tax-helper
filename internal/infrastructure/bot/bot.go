@@ -2,10 +2,12 @@ package bot
 
 import (
 	"context"
+	"runtime/debug"
 	"tax-helper/internal/config"
 	"tax-helper/internal/infrastructure/bot/commands"
 	"tax-helper/internal/logger"
-	"tax-helper/internal/service"
+	"tax-helper/internal/service/entrepreneur"
+	"tax-helper/internal/service/income"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -22,7 +24,7 @@ type Bot struct {
 	logger       logger.Logger
 }
 
-func NewBot(cfg *config.Config, ts *service.TaxService, log logger.Logger) (*Bot, error) {
+func NewBot(cfg *config.Config, es *entrepreneur.Service, is *income.Service, log logger.Logger) (*Bot, error) {
 	botApi, err := tgbotapi.NewBotAPI(cfg.BotToken)
 	if err != nil {
 		return nil, err
@@ -32,8 +34,9 @@ func NewBot(cfg *config.Config, ts *service.TaxService, log logger.Logger) (*Bot
 
 	handlers := []handler{
 		commands.NewStartHandler(),
-		commands.NewHelpHandler(),
-		commands.NewRegisterHandler(ts, log),
+		commands.NewHelpHandler(log),
+		commands.NewRegisterHandler(es, log),
+		commands.NewAddIncomeHandler(is),
 	}
 	cmdToHandler := map[string]handler{}
 	cfgCommands := make([]tgbotapi.BotCommand, 0, len(handlers))
@@ -59,6 +62,17 @@ func NewBot(cfg *config.Config, ts *service.TaxService, log logger.Logger) (*Bot
 }
 
 func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
+	defer func() {
+		if r := recover(); r != nil {
+			bot.logger.Errorf(
+				"panic recovered while handling update=%+v: %v\n%s",
+				update,
+				r,
+				string(debug.Stack()),
+			)
+		}
+	}()
+
 	if update.Message == nil {
 		return
 	}
@@ -69,7 +83,14 @@ func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	}
 	_, err := h.Handle(ctx, bot.api, update.Message)
 	if err != nil {
-		bot.logger.Error(err.Error())
+		bot.logger.Errorf(
+			"failed to handle command=%q user_id=%d username=%q text=%q: %v",
+			update.Message.Command(),
+			update.Message.From.ID,
+			update.Message.From.UserName,
+			update.Message.Text,
+			err,
+		)
 	}
 }
 

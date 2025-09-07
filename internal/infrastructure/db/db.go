@@ -31,8 +31,8 @@ func (db *DB) DefaultConnection() *gorm.DB {
 }
 
 func (db *DB) Connection(ctx context.Context) *gorm.DB {
-	txCtx := getTx(ctx)
-	if txCtx != nil {
+	txCtx, ok := getTx(ctx)
+	if ok {
 		return txCtx
 	}
 	return db.DefaultConnection()

@@ -2,15 +2,18 @@ package commands
 
 import (
 	"context"
-	"log"
+	"strings"
+	"tax-helper/internal/logger"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type HelpHandler struct{}
+type HelpHandler struct {
+	logger logger.Logger
+}
 
-func NewHelpHandler() *HelpHandler {
-	return &HelpHandler{}
+func NewHelpHandler(l logger.Logger) *HelpHandler {
+	return &HelpHandler{logger: l}
 }
 
 func (h *HelpHandler) Command() tgbotapi.BotCommand {
@@ -20,18 +23,42 @@ func (h *HelpHandler) Command() tgbotapi.BotCommand {
 	}
 }
 
+func escapeMarkdownV2(text string) string {
+	replacer := strings.NewReplacer(
+		"_", "\\_",
+		"*", "\\*",
+		"[", "\\[",
+		"]", "\\]",
+		"(", "\\(",
+		")", "\\)",
+		"~", "\\~",
+		"`", "\\`",
+		">", "\\>",
+		"#", "\\#",
+		"+", "\\+",
+		"-", "\\-",
+		"=", "\\=",
+		"|", "\\|",
+		"{", "\\{",
+		"}", "\\}",
+		".", "\\.",
+		"!", "\\!",
+	)
+	return replacer.Replace(text)
+}
+
 func (h *HelpHandler) Handle(_ context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error) {
 	commands, err := api.GetMyCommands()
 	if err != nil {
-		log.Println(err)
+		h.logger.Error(err)
 		return tgbotapi.Message{}, err
 	}
 	text := "📖 *Bot Commands Guide*\n\n"
 	for _, cmd := range commands {
-		text += "/" + cmd.Command + " – " + cmd.Description + "\n\n"
+		text += "/" + escapeMarkdownV2(cmd.Command) + " – " + escapeMarkdownV2(cmd.Description) + "\n\n"
 	}
 
 	reply := tgbotapi.NewMessage(msg.Chat.ID, text)
-	reply.ParseMode = "Markdown"
+	reply.ParseMode = "MarkdownV2"
 	return api.Send(reply)
 }

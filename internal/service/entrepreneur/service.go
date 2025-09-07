@@ -1,12 +1,14 @@
-package service
+package entrepreneur
 
 import (
 	"context"
 	"tax-helper/internal/domain"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
-type EntrepreneurRepo interface {
+type EntrepreneursRepo interface {
 	GetByID(ctx context.Context, id uint) (*domain.Entrepreneur, error)
 	Create(ctx context.Context, e *domain.Entrepreneur) error
 }
@@ -19,31 +21,31 @@ type TxManager interface {
 	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
 }
 
-type TaxService struct {
-	entrepreneurRepo EntrepreneurRepo
+type Service struct {
+	entrepreneurRepo EntrepreneursRepo
 	tasksRepo        TasksRepo
 	txManager        TxManager
 }
 
-func NewTaxService(
-	er EntrepreneurRepo,
+func NewService(
+	er EntrepreneursRepo,
 	tr TasksRepo,
 	txManager TxManager,
-) *TaxService {
-	return &TaxService{
+) *Service {
+	return &Service{
 		entrepreneurRepo: er,
 		tasksRepo:        tr,
 		txManager:        txManager,
 	}
 }
 
-func (s *TaxService) CreateEntrepreneur(ctx context.Context, tgID uint, regAt, lastAt time.Time, yta float64) error {
+func (s *Service) CreateEntrepreneur(ctx context.Context, tgID uint, regAt, lastAt time.Time, yta float64) error {
 	e := &domain.Entrepreneur{
 		TelegramID:      tgID,
 		Status:          "active",
 		RegisteredAt:    regAt,
 		LastSentAt:      lastAt,
-		YearTotalAmount: yta,
+		YearTotalAmount: decimal.NewFromFloat(yta),
 	}
 	err := e.Validate()
 	if err != nil {

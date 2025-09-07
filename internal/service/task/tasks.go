@@ -1,4 +1,4 @@
-package service
+package task
 
 import (
 	"context"
@@ -10,7 +10,7 @@ type TasksService struct {
 	repo *repository.TasksRepo
 }
 
-func NewTaskService(repo *repository.TasksRepo) *TasksService {
+func NewService(repo *repository.TasksRepo) *TasksService {
 	return &TasksService{repo: repo}
 }
 

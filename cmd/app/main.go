@@ -10,10 +10,14 @@ import (
 	"tax-helper/internal/config"
 	"tax-helper/internal/infrastructure/bot"
 	"tax-helper/internal/infrastructure/db"
+	"tax-helper/internal/infrastructure/http"
 	"tax-helper/internal/infrastructure/repository"
 	logging "tax-helper/internal/logger"
 	"tax-helper/internal/scheduler"
-	"tax-helper/internal/service"
+	"tax-helper/internal/service/entrepreneur"
+	"tax-helper/internal/service/income"
+	"tax-helper/internal/service/rate"
+	"tax-helper/internal/service/task"
 	"time"
 )
 
@@ -35,14 +39,18 @@ func main() {
 	}
 
 	txManager := db.NewTxManager(database.DefaultConnection())
+	httpClient := http.NewClient(cfg.RateUrl, time.Second*5, logger)
 
 	entrepreneurRepo := repository.NewEntrepreneurRepo(database)
 	tasksRepo := repository.NewTasksRepo(database)
+	incomeRepo := repository.NewIncomeRepo(database)
 
-	taxService := service.NewTaxService(entrepreneurRepo, tasksRepo, txManager)
-	tasksService := service.NewTaskService(tasksRepo)
+	rateService := rate.NewService(httpClient, logger)
+	entrepreneurService := entrepreneur.NewService(entrepreneurRepo, tasksRepo, txManager)
+	incomeService := income.NewIncomeService(incomeRepo, rateService, logger)
+	tasksService := task.NewService(tasksRepo)
 
-	tgBot, err := bot.NewBot(cfg, taxService, logger)
+	tgBot, err := bot.NewBot(cfg, entrepreneurService, incomeService, logger)
 	if err != nil {
 		log.Fatal(err)
 	}

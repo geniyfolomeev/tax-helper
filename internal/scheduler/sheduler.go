@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"tax-helper/internal/infrastructure/bot"
 	"tax-helper/internal/logger"
-	"tax-helper/internal/service"
+	"tax-helper/internal/service/task"
 	"time"
 )
 
 type Scheduler struct {
-	service  *service.TasksService
+	service  *task.TasksService
 	interval time.Duration
 	bot      *bot.Bot
 	logger   logger.Logger
 }
 
-func NewScheduler(service *service.TasksService, interval time.Duration, bot *bot.Bot, log logger.Logger) *Scheduler {
+func NewScheduler(service *task.TasksService, interval time.Duration, bot *bot.Bot, log logger.Logger) *Scheduler {
 	return &Scheduler{
 		service:  service,
 		interval: interval,

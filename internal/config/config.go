@@ -15,6 +15,8 @@ type Config struct {
 	BotToken string
 
 	LoggingMode string
+
+	RateUrl string
 }
 
 func NewConfig() (*Config, error) {
@@ -35,5 +37,6 @@ func NewConfig() (*Config, error) {
 		DBMaxIdleConnections: maxIdleConnections,
 		BotToken:             os.Getenv("BOT_TOKEN"),
 		LoggingMode:          os.Getenv("LOGGING_MODE"),
+		RateUrl:              os.Getenv("RATE_URL"),
 	}, nil
 }

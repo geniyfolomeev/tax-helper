@@ -8,20 +8,20 @@ import (
 	"strings"
 	"tax-helper/internal/domain"
 	"tax-helper/internal/logger"
-	"tax-helper/internal/service"
+	"tax-helper/internal/service/entrepreneur"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-const usageExample = "/register DD.MM.YYYY AMOUNT [LAST_SENT_DATE]"
+const registerExample = "/register DD.MM.YYYY AMOUNT [LAST_SENT_DATE]"
 
 type RegisterHandler struct {
-	service *service.TaxService
+	service *entrepreneur.Service
 	logger  logger.Logger
 }
 
-func NewRegisterHandler(s *service.TaxService, l logger.Logger) *RegisterHandler {
+func NewRegisterHandler(s *entrepreneur.Service, l logger.Logger) *RegisterHandler {
 	return &RegisterHandler{service: s, logger: l}
 }
 
@@ -33,7 +33,7 @@ func (h *RegisterHandler) Command() tgbotapi.BotCommand {
 				"- DD.MM.YYYY = registration date\n"+
 				"- AMOUNT = total income so far (number)\n"+
 				"- LAST_SENT_DATE = optional, last declaration date (DD.MM.YYYY)",
-			usageExample,
+			registerExample,
 		),
 	}
 }
@@ -41,7 +41,7 @@ func (h *RegisterHandler) Command() tgbotapi.BotCommand {
 func (h *RegisterHandler) Handle(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error) {
 	args := strings.Fields(msg.CommandArguments())
 	if len(args) < 2 || len(args) > 3 {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("Wrong number of arguments, usage: %s", usageExample))
+		reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("Wrong number of arguments, usage: %s", registerExample))
 		return api.Send(reply)
 	}
 

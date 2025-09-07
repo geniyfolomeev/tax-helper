@@ -8,6 +8,7 @@ type Logger interface {
 	Error(args ...any)
 	Errorf(template string, args ...interface{})
 	Debug(args ...any)
+	Debugf(template string, args ...interface{})
 	Fatal(args ...any)
 }
 

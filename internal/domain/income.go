@@ -1,11 +1,23 @@
 package domain
 
-import "time"
+import (
+	"time"
 
-type MonthIncome struct {
-	ID             uint
+	"github.com/shopspring/decimal"
+)
+
+type Income struct {
+	EntrepreneurID uint
 	Date           time.Time
-	Amount         float64
-	SourceAmount   float64
+	Amount         decimal.Decimal
+	SourceAmount   decimal.Decimal
 	SourceCurrency string
+}
+
+func (i *Income) Validate() error {
+	return nil
+}
+
+func (i *Income) SetAmount(amount decimal.Decimal) {
+	i.Amount = amount
 }
