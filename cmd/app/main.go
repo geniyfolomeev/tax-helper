@@ -32,7 +32,9 @@ func main() {
 
 	entrepreneurRepo := repository.NewEntrepreneurRepo(database)
 	tasksRepo := repository.NewTasksRepo(database)
+
 	taxService := service.NewTaxService(entrepreneurRepo, tasksRepo, txManager)
+	tasksService := service.NewTaskService(tasksRepo)
 
 	tgBot, err := bot.NewBot(cfg, taxService)
 	if err != nil {
@@ -52,7 +54,7 @@ func main() {
 		}
 	}()
 
-	s := scheduler.NewScheduler(taxService, time.Hour, tgBot)
+	s := scheduler.NewScheduler(tasksService, time.Hour, tgBot)
 	s.Start(ctx)
 
 	sig := make(chan os.Signal, 1)

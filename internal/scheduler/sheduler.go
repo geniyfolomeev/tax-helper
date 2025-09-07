@@ -10,12 +10,12 @@ import (
 )
 
 type Scheduler struct {
-	service  service.TaskService
+	service  *service.TasksService
 	interval time.Duration
 	bot      *bot.Bot
 }
 
-func NewScheduler(service service.TaskService, interval time.Duration, bot *bot.Bot) *Scheduler {
+func NewScheduler(service *service.TasksService, interval time.Duration, bot *bot.Bot) *Scheduler {
 	return &Scheduler{
 		service:  service,
 		interval: interval,
