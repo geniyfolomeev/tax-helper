@@ -28,13 +28,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	entrepreneurRepo := repository.NewEntrepreneurRepo(database.Conn)
-	entrepreneurTasksRepo := repository.NewEntrepreneurTasksRepo(database.Conn)
-	tasksRepo := repository.NewTaskRepository(database.Conn)
-	entrepreneurService := service.NewEntrepreneurService(entrepreneurRepo, entrepreneurTasksRepo)
-	tasksService := service.NewTaskService(tasksRepo)
+	txManager := db.NewTxManager(database.DefaultConnection())
 
-	tgBot, err := bot.NewBot(cfg, entrepreneurService)
+	entrepreneurRepo := repository.NewEntrepreneurRepo(database)
+	tasksRepo := repository.NewTasksRepo(database)
+	taxService := service.NewTaxService(entrepreneurRepo, tasksRepo, txManager)
+
+	tgBot, err := bot.NewBot(cfg, taxService)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func main() {
 		}
 	}()
 
-	s := scheduler.NewScheduler(tasksService, time.Hour, tgBot)
+	s := scheduler.NewScheduler(taxService, time.Hour, tgBot)
 	s.Start(ctx)
 
 	sig := make(chan os.Signal, 1)

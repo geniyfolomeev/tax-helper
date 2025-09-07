@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"log"
 	"tax-helper/internal/config"
 	"tax-helper/internal/infrastructure/bot/commands"
 	"tax-helper/internal/logger"
@@ -13,7 +12,7 @@ import (
 
 type handler interface {
 	Command() tgbotapi.BotCommand
-	Handle(api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error)
+	Handle(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error)
 }
 
 type Bot struct {
@@ -22,7 +21,7 @@ type Bot struct {
 	cmdToHandler map[string]handler
 }
 
-func NewBot(cfg *config.Config, e *service.EntrepreneurService) (*Bot, error) {
+func NewBot(cfg *config.Config, ts *service.TaxService) (*Bot, error) {
 	botApi, err := tgbotapi.NewBotAPI(cfg.BotToken)
 	if err != nil {
 		return nil, err
@@ -33,7 +32,7 @@ func NewBot(cfg *config.Config, e *service.EntrepreneurService) (*Bot, error) {
 	handlers := []handler{
 		commands.NewStartHandler(),
 		commands.NewHelpHandler(),
-		commands.NewRegisterHandler(e),
+		commands.NewRegisterHandler(ts),
 	}
 	cmdToHandler := map[string]handler{}
 	cfgCommands := make([]tgbotapi.BotCommand, 0, len(handlers))
@@ -57,7 +56,7 @@ func NewBot(cfg *config.Config, e *service.EntrepreneurService) (*Bot, error) {
 	}, nil
 }
 
-func (bot *Bot) handleUpdate(update tgbotapi.Update) {
+func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if update.Message == nil {
 		return
 	}
@@ -66,9 +65,9 @@ func (bot *Bot) handleUpdate(update tgbotapi.Update) {
 		// TODO: default handler
 		return
 	}
-	_, err := h.Handle(bot.api, update.Message)
+	_, err := h.Handle(ctx, bot.api, update.Message)
 	if err != nil {
-		log.Println(err)
+		logger.Error(err.Error())
 	}
 }
 
@@ -99,7 +98,7 @@ func (bot *Bot) Run(ctx context.Context) error {
 			logger.Info("bot stopped")
 			return nil
 		case update := <-bot.updates:
-			bot.handleUpdate(update)
+			bot.handleUpdate(ctx, update)
 		}
 	}
 }

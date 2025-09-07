@@ -2,38 +2,35 @@ package repository
 
 import (
 	"context"
-	"gorm.io/gorm"
-	"time"
+	"tax-helper/internal/domain"
+	"tax-helper/internal/infrastructure/db"
 )
 
-type Tasks struct {
-	ID         uint `gorm:"primaryKey"`
-	TelegramID uint
-	Status     string
-	Type       string
-	RunAt      time.Time
-}
 
 type TasksRepo struct {
-	db *gorm.DB
+	db *db.DB
 }
 
-type TaskRepository interface {
-	GetPendingTasks(ctx context.Context) ([]Tasks, error)
-	MarkAsNotified(ctx context.Context, id uint) error
+func NewTasksRepo(db *db.DB) *TasksRepo {
+	return &TasksRepo{db: db}
 }
 
-type taskRepository struct {
-	db *gorm.DB
+func (r *TasksRepo) CreateBatch(ctx context.Context, tasks []*domain.Task) error {
+	models := make([]*db.Tasks, len(tasks))
+	for i, t := range tasks {
+		models[i] = &db.Tasks{
+			TelegramID: t.TelegramID,
+			Status:     t.Status,
+			Type:       t.Type,
+			RunAt:      t.RunAt,
+		}
+	}
+	return r.db.Connection(ctx).Create(&models).Error
 }
 
-func NewTaskRepository(db *gorm.DB) TaskRepository {
-	return &taskRepository{db: db}
-}
-
-func (r *taskRepository) GetPendingTasks(ctx context.Context) ([]Tasks, error) {
-	var tasks []Tasks
-	if err := r.db.WithContext(ctx).
+func (r *TasksRepo) GetPendingTasks(ctx context.Context) ([]db.Tasks, error) {
+	var tasks []db.Tasks
+	if err := r.db.Connection(ctx).
 		Where("run_at <= ? AND notified = ?", time.Now(), false).
 		Find(&tasks).Error; err != nil {
 		return nil, err
@@ -41,8 +38,8 @@ func (r *taskRepository) GetPendingTasks(ctx context.Context) ([]Tasks, error) {
 	return tasks, nil
 }
 
-func (r *taskRepository) MarkAsNotified(ctx context.Context, id uint) error {
-	return r.db.WithContext(ctx).Model(&Tasks{}).
+func (r *TasksRepo) MarkAsNotified(ctx context.Context, id uint) error {
+	return r.db.Connection(ctx).Model(&db.Tasks{}).
 		Where("id = ?", id).
 		Update("status", "done").Error
 }
