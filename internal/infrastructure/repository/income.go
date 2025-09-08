@@ -5,6 +5,7 @@ import (
 	"strings"
 	"tax-helper/internal/domain"
 	"tax-helper/internal/infrastructure/db"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -30,4 +31,27 @@ func (r *IncomeRepo) AddIncome(ctx context.Context, income *domain.Income) error
 		return domain.ErrEntrepreneurNotFound
 	}
 	return nil
+}
+
+func (r *IncomeRepo) GetIncomeByPeriod(ctx context.Context, tgID uint, dateFrom time.Time, dateTo time.Time) ([]*domain.Income, error) {
+	var rows []*db.Income
+	err := r.db.Connection(ctx).
+		Where("telegram_id = ? AND date BETWEEN ? AND ?", tgID, dateFrom, dateTo).
+		Find(&rows).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	incomes := make([]*domain.Income, len(rows))
+	for i, row := range rows {
+		incomes[i] = &domain.Income{
+			EntrepreneurID: row.TelegramID,
+			Date:           row.Date,
+			Amount:         row.Amount,
+			SourceAmount:   row.SourceAmount,
+			SourceCurrency: row.SourceCurrency,
+		}
+	}
+	return incomes, nil
 }

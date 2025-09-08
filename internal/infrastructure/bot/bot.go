@@ -37,6 +37,7 @@ func NewBot(cfg *config.Config, es *entrepreneur.Service, is *income.Service, lo
 		commands.NewHelpHandler(log),
 		commands.NewRegisterHandler(es, log),
 		commands.NewAddIncomeHandler(is),
+		commands.NewGetIncomeHandler(is),
 	}
 	cmdToHandler := map[string]handler{}
 	cfgCommands := make([]tgbotapi.BotCommand, 0, len(handlers))

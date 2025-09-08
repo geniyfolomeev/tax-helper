@@ -12,9 +12,6 @@ const (
 	sendingDayTo   = 15
 )
 
-// CurrentTimeFn - function to get current time, test purpose only
-var currentTimeFn = time.Now
-
 type Entrepreneur struct {
 	TelegramID      uint
 	Status          string
