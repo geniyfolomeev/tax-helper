@@ -21,6 +21,12 @@ type RegisterHandler struct {
 	logger  logger.Logger
 }
 
+type registerArgs struct {
+	registeredAt time.Time
+	amount       float64
+	lastSentAt   time.Time
+}
+
 func NewRegisterHandler(s *entrepreneur.Service, l logger.Logger) *RegisterHandler {
 	return &RegisterHandler{service: s, logger: l}
 }
@@ -38,49 +44,52 @@ func (h *RegisterHandler) Command() tgbotapi.BotCommand {
 	}
 }
 
-func (h *RegisterHandler) Handle(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error) {
-	args := strings.Fields(msg.CommandArguments())
+func (h *RegisterHandler) parseArgs(args []string) (*registerArgs, error) {
 	if len(args) < 2 || len(args) > 3 {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("Wrong number of arguments, usage: %s", registerExample))
-		return api.Send(reply)
+		return nil, fmt.Errorf("wrong number of arguments, usage: %s", registerExample)
 	}
 
 	registeredAt, err := time.Parse("02.01.2006", args[0])
 	if err != nil {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, "Wrong date format")
-		return api.Send(reply)
+		return nil, fmt.Errorf("wrong date format")
 	}
 
 	amount, err := strconv.ParseFloat(args[1], 64)
 	if err != nil {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, "Wrong amount format")
-		return api.Send(reply)
+		return nil, fmt.Errorf("wrong amount format")
 	}
 
 	var lastSentAt time.Time
 	if len(args) == 3 {
 		t, err := time.Parse("02.01.2006", args[2])
 		if err != nil {
-			reply := tgbotapi.NewMessage(msg.Chat.ID, "Wrong date format for last declaration date")
-			return api.Send(reply)
+			return nil, fmt.Errorf("wrong date format for last declaration date")
 		}
 		lastSentAt = t
 	}
+	return &registerArgs{
+		registeredAt: registeredAt,
+		amount:       amount,
+		lastSentAt:   lastSentAt,
+	}, nil
+}
 
-	err = h.service.CreateEntrepreneur(ctx, uint(msg.Chat.ID), registeredAt, lastSentAt, amount)
+func (h *RegisterHandler) Handle(ctx context.Context, msg *tgbotapi.Message) tgbotapi.MessageConfig {
+	args, err := h.parseArgs(strings.Fields(msg.CommandArguments()))
+	if err != nil {
+		return tgbotapi.NewMessage(msg.Chat.ID, err.Error())
+	}
+
+	err = h.service.CreateEntrepreneur(ctx, uint(msg.Chat.ID), args.registeredAt, args.lastSentAt, args.amount)
 	if err != nil {
 		if errors.Is(err, domain.ErrValidation) {
-			reply := tgbotapi.NewMessage(msg.Chat.ID, err.Error())
-			return api.Send(reply)
+			return tgbotapi.NewMessage(msg.Chat.ID, err.Error())
 		}
 		if errors.Is(err, domain.ErrEntrepreneurAlreadyExists) {
-			reply := tgbotapi.NewMessage(msg.Chat.ID, err.Error())
-			return api.Send(reply)
+			return tgbotapi.NewMessage(msg.Chat.ID, err.Error())
 		}
 		h.logger.Error(err.Error())
-		reply := tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("Something went totally wrong: %s", err.Error()))
-		return api.Send(reply)
+		return tgbotapi.NewMessage(msg.Chat.ID, fmt.Sprintf("Something went totally wrong: %s", err.Error()))
 	}
-	reply := tgbotapi.NewMessage(msg.Chat.ID, "Successfully registered")
-	return api.Send(reply)
+	return tgbotapi.NewMessage(msg.Chat.ID, "Successfully registered")
 }

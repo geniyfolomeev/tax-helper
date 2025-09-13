@@ -19,7 +19,6 @@ func (h *StartHandler) Command() tgbotapi.BotCommand {
 	}
 }
 
-func (h *StartHandler) Handle(_ context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error) {
-	reply := tgbotapi.NewMessage(msg.Chat.ID, "Привет! Я бот-помощник по налогам 🧾")
-	return api.Send(reply)
+func (h *StartHandler) Handle(_ context.Context, msg *tgbotapi.Message) tgbotapi.MessageConfig {
+	return tgbotapi.NewMessage(msg.Chat.ID, "Привет! Я бот-помощник по налогам 🧾")
 }

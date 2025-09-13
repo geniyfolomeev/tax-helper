@@ -14,7 +14,7 @@ import (
 
 type handler interface {
 	Command() tgbotapi.BotCommand
-	Handle(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error)
+	Handle(ctx context.Context, msg *tgbotapi.Message) tgbotapi.MessageConfig
 }
 
 type Bot struct {
@@ -34,7 +34,7 @@ func NewBot(cfg *config.Config, es *entrepreneur.Service, is *income.Service, lo
 
 	handlers := []handler{
 		commands.NewStartHandler(),
-		commands.NewHelpHandler(log),
+		commands.NewHelpHandler(log, botApi),
 		commands.NewRegisterHandler(es, log),
 		commands.NewAddIncomeHandler(is),
 		commands.NewGetIncomeHandler(is),
@@ -82,7 +82,8 @@ func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 		// TODO: default handler
 		return
 	}
-	_, err := h.Handle(ctx, bot.api, update.Message)
+	msg := h.Handle(ctx, update.Message)
+	_, err := bot.api.Send(msg)
 	if err != nil {
 		bot.logger.Errorf(
 			"failed to handle command=%q user_id=%d username=%q text=%q: %v",
