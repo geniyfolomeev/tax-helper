@@ -22,11 +22,7 @@ type Bot struct {
 	cmdToHandler map[string]handler
 }
 
-func NewBot(cfg *config.Config, e *service.EntrepreneurService) (*Bot, error) {
-	botApi, err := tgbotapi.NewBotAPI(cfg.BotToken)
-	if err != nil {
-		return nil, err
-	}
+func NewBot(cfg *config.Config, e *service.EntrepreneurService, botApi *tgbotapi.BotAPI) (*Bot, error) {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -45,7 +41,7 @@ func NewBot(cfg *config.Config, e *service.EntrepreneurService) (*Bot, error) {
 	botCfg := tgbotapi.SetMyCommandsConfig{
 		Commands: cfgCommands,
 	}
-	_, err = botApi.Request(botCfg)
+	_, err := botApi.Request(botCfg)
 	if err != nil {
 		return nil, err
 	}
