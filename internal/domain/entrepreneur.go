@@ -3,6 +3,8 @@ package domain
 import (
 	"fmt"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -10,30 +12,32 @@ const (
 	sendingDayTo   = 15
 )
 
-// CurrentTimeFn - function to get current time, test purpose only
-var currentTimeFn = time.Now
-
 type Entrepreneur struct {
 	TelegramID      uint
 	Status          string
 	RegisteredAt    time.Time // Entrepreneur registered at RegisteredAt, it's not CreatedAt!
 	LastSentAt      time.Time // Entrepreneur sent last declaration at LastSentAt (Could be zero date!)
-	YearTotalAmount float64
-}
-
-func NewEntrepreneur(tgID uint, status string, regAt, lastAt time.Time, yta float64) *Entrepreneur {
-	return &Entrepreneur{
-		TelegramID:      tgID,
-		Status:          status,
-		RegisteredAt:    regAt,
-		LastSentAt:      lastAt,
-		YearTotalAmount: yta,
-	}
+	YearTotalAmount decimal.Decimal
 }
 
 func (e *Entrepreneur) Validate() error {
-	if time.Now().Before(e.RegisteredAt) {
-		return fmt.Errorf("%w: registration date is in the future", ErrValidation)
+	if e.YearTotalAmount.IsNegative() {
+		return fmt.Errorf("%w: yearly amount cannot be negative", ErrValidation)
+	}
+	if currentTimeFn().Before(e.RegisteredAt) {
+		return fmt.Errorf("%w: registration date cannot be in the future", ErrValidation)
+	}
+	if e.LastSentAt.IsZero() && !e.YearTotalAmount.IsZero() {
+		return fmt.Errorf("%w: yearly amount must be zero until the first declaration is sent", ErrValidation)
+	}
+	if !e.LastSentAt.IsZero() && e.YearTotalAmount.IsZero() {
+		return fmt.Errorf("%w: yearly amount cannot be zero after at least one declaration has been sent", ErrValidation)
+	}
+	if !e.LastSentAt.IsZero() && e.RegisteredAt.After(e.LastSentAt) {
+		return fmt.Errorf("%w: registration date cannot be after your last declaration", ErrValidation)
+	}
+	if !e.LastSentAt.IsZero() && e.LastSentAt.After(currentTimeFn()) {
+		return fmt.Errorf("%w: last declaration date cannot be in the future", ErrValidation)
 	}
 	return nil
 }

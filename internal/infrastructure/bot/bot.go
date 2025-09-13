@@ -2,34 +2,38 @@ package bot
 
 import (
 	"context"
-	"log"
-	"tax-helper/internal/config"
+	"runtime/debug"
 	"tax-helper/internal/infrastructure/bot/commands"
 	"tax-helper/internal/logger"
-	"tax-helper/internal/service"
+	"tax-helper/internal/service/entrepreneur"
+	"tax-helper/internal/service/income"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type handler interface {
 	Command() tgbotapi.BotCommand
-	Handle(api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error)
+	Handle(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error)
 }
 
 type Bot struct {
 	api          *tgbotapi.BotAPI
 	updates      tgbotapi.UpdatesChannel
 	cmdToHandler map[string]handler
+	logger       logger.Logger
 }
 
-func NewBot(cfg *config.Config, e *service.EntrepreneurService, botApi *tgbotapi.BotAPI) (*Bot, error) {
+func NewBot(es *entrepreneur.Service, is *income.Service, log logger.Logger, botApi *tgbotapi.BotAPI) (*Bot, error) {
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
 	handlers := []handler{
 		commands.NewStartHandler(),
-		commands.NewHelpHandler(),
-		commands.NewRegisterHandler(e),
+		commands.NewHelpHandler(log),
+		commands.NewRegisterHandler(es, log),
+		commands.NewAddIncomeHandler(is),
+		commands.NewGetIncomeHandler(is),
 	}
 	cmdToHandler := map[string]handler{}
 	cfgCommands := make([]tgbotapi.BotCommand, 0, len(handlers))
@@ -50,10 +54,22 @@ func NewBot(cfg *config.Config, e *service.EntrepreneurService, botApi *tgbotapi
 		api:          botApi,
 		updates:      botApi.GetUpdatesChan(u),
 		cmdToHandler: cmdToHandler,
+		logger:       log,
 	}, nil
 }
 
-func (bot *Bot) handleUpdate(update tgbotapi.Update) {
+func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
+	defer func() {
+		if r := recover(); r != nil {
+			bot.logger.Errorf(
+				"panic recovered while handling update=%+v: %v\n%s",
+				update,
+				r,
+				string(debug.Stack()),
+			)
+		}
+	}()
+
 	if update.Message == nil {
 		return
 	}
@@ -62,40 +78,38 @@ func (bot *Bot) handleUpdate(update tgbotapi.Update) {
 		// TODO: default handler
 		return
 	}
-	_, err := h.Handle(bot.api, update.Message)
+	_, err := h.Handle(ctx, bot.api, update.Message)
 	if err != nil {
-		log.Println(err)
+		bot.logger.Errorf(
+			"failed to handle command=%q user_id=%d username=%q text=%q: %v",
+			update.Message.Command(),
+			update.Message.From.ID,
+			update.Message.From.UserName,
+			update.Message.Text,
+			err,
+		)
 	}
 }
 
 func (bot *Bot) SendMessage(chatID uint, text string) error {
 	msg := tgbotapi.NewMessage(int64(chatID), text)
-
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				logger.Error("Паника при отправке сообщения в чат %d: %v", chatID, r)
-			}
-		}()
-
-		_, err := bot.api.Send(msg)
-		if err != nil {
-			logger.Error("Ошибка отправки сообщения в чат %d: %v", chatID, err)
-		}
-	}()
-
+	_, err := bot.api.Send(msg)
+	if err != nil {
+		bot.logger.Errorf("Failed to send message to chat %d: %v", chatID, err)
+		return err
+	}
 	return nil
 }
 
 func (bot *Bot) Run(ctx context.Context) error {
-	logger.Info("bot started")
+	bot.logger.Info("bot started")
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Info("bot stopped")
+			bot.logger.Info("bot stopped")
 			return nil
 		case update := <-bot.updates:
-			bot.handleUpdate(update)
+			bot.handleUpdate(ctx, update)
 		}
 	}
 }

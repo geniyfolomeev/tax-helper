@@ -1,33 +1,27 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"tax-helper/internal/domain"
-	"time"
+	"tax-helper/internal/infrastructure/db"
 
 	"gorm.io/gorm"
 )
 
-type Entrepreneur struct {
-	ID              uint `gorm:"primaryKey"` // Telegram ID
-	Status          string
-	RegisteredAt    time.Time
-	LastSentAt      time.Time
-	YearTotalAmount float64
-}
-
 type EntrepreneurRepo struct {
-	db *gorm.DB
+	db *db.DB
 }
 
-func NewEntrepreneurRepo(db *gorm.DB) *EntrepreneurRepo {
+func NewEntrepreneurRepo(db *db.DB) *EntrepreneurRepo {
 	return &EntrepreneurRepo{db: db}
 }
 
-func (r *EntrepreneurRepo) GetByID(id uint) (*domain.Entrepreneur, error) {
-	var e Entrepreneur
-	if err := r.db.Where(&Entrepreneur{ID: id}).First(&e).Error; err != nil {
+func (r *EntrepreneurRepo) GetByID(ctx context.Context, id uint) (*domain.Entrepreneur, error) {
+	var e db.Entrepreneur
+	if err := r.db.Connection(ctx).Where(&db.Entrepreneur{ID: id}).First(&e).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("%w: id = %d", domain.ErrEntrepreneurNotFound, id)
 		}
@@ -41,4 +35,22 @@ func (r *EntrepreneurRepo) GetByID(id uint) (*domain.Entrepreneur, error) {
 		YearTotalAmount: e.YearTotalAmount,
 		LastSentAt:      e.LastSentAt,
 	}, nil
+}
+
+func (r *EntrepreneurRepo) Create(ctx context.Context, e *domain.Entrepreneur) error {
+	model := &db.Entrepreneur{
+		ID:              e.TelegramID,
+		Status:          e.Status,
+		RegisteredAt:    e.RegisteredAt,
+		LastSentAt:      e.LastSentAt,
+		YearTotalAmount: e.YearTotalAmount,
+	}
+	err := r.db.Connection(ctx).Create(model).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(err.Error(), "duplicate") {
+			return fmt.Errorf("%w: telegram_id = %d", domain.ErrEntrepreneurAlreadyExists, e.TelegramID)
+		}
+		return err
+	}
+	return nil
 }

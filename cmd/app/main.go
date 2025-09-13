@@ -12,10 +12,14 @@ import (
 	"tax-helper/internal/infrastructure/adapters"
 	"tax-helper/internal/infrastructure/bot"
 	"tax-helper/internal/infrastructure/db"
+	"tax-helper/internal/infrastructure/http"
 	"tax-helper/internal/infrastructure/repository"
-	"tax-helper/internal/logger"
+	logging "tax-helper/internal/logger"
 	"tax-helper/internal/scheduler"
-	"tax-helper/internal/service"
+	"tax-helper/internal/service/entrepreneur"
+	"tax-helper/internal/service/income"
+	"tax-helper/internal/service/rate"
+	"tax-helper/internal/service/task"
 	"time"
 )
 
@@ -24,6 +28,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	logger, err := logging.NewLogger(cfg.LoggingMode)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logger.Sync()
 
 	database, err := db.NewDB(cfg)
 	if err != nil {
@@ -34,14 +44,19 @@ func main() {
 		log.Fatalf("failed to init bot: %v", err)
 	}
 
-	entrepreneurRepo := repository.NewEntrepreneurRepo(database.Conn)
-	entrepreneurTasksRepo := repository.NewEntrepreneurTasksRepo(database.Conn)
-	tasksRepo := repository.NewTaskRepository(database.Conn)
-	entrepreneurService := service.NewEntrepreneurService(entrepreneurRepo, entrepreneurTasksRepo)
-	notifiers := adapters.CompositionsAdapters(botApi)
-	tasksService := service.NewTaskService(tasksRepo, notifiers)
+	txManager := db.NewTxManager(database.DefaultConnection())
+	httpClient := http.NewClient(cfg.RateUrl, time.Second*5, logger)
 
-	tgBot, err := bot.NewBot(cfg, entrepreneurService, botApi)
+	entrepreneurRepo := repository.NewEntrepreneurRepo(database)
+	tasksRepo := repository.NewTasksRepo(database)
+	incomeRepo := repository.NewIncomeRepo(database)
+	notifiers := adapters.CompositionsAdapters(botApi)
+	rateService := rate.NewService(httpClient, logger)
+	entrepreneurService := entrepreneur.NewService(entrepreneurRepo, tasksRepo, txManager)
+	incomeService := income.NewIncomeService(incomeRepo, rateService, logger)
+	tasksService := task.NewService(tasksRepo, notifiers)
+
+	tgBot, err := bot.NewBot(entrepreneurService, incomeService, logger, botApi)
 	if err != nil {
 		log.Fatal(err)
 	}

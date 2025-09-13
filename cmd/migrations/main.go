@@ -4,7 +4,7 @@ import (
 	"log"
 	"tax-helper/internal/config"
 	"tax-helper/internal/infrastructure/db"
-	"tax-helper/internal/logger"
+	logging "tax-helper/internal/logger"
 )
 
 func main() {
@@ -12,6 +12,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	logger, err := logging.NewLogger(cfg.LoggingMode)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logger.Sync()
+
 	database, err := db.NewDB(cfg)
 	if err != nil {
 		log.Fatal(err)

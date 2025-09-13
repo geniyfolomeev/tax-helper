@@ -3,6 +3,8 @@ package domain
 import (
 	"testing"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 func TestCalculateNextDeclarationDate(t *testing.T) {
@@ -55,7 +57,13 @@ func TestCalculateNextDeclarationDate(t *testing.T) {
 			currentTimeFn = func() time.Time { return tt.now }
 			defer func() { currentTimeFn = time.Now }()
 
-			e := NewEntrepreneur(1, "active", tt.registeredAt, tt.lastSentAt, 100)
+			e := &Entrepreneur{
+				TelegramID:      1,
+				Status:          "active",
+				RegisteredAt:    tt.registeredAt,
+				LastSentAt:      tt.lastSentAt,
+				YearTotalAmount: decimal.NewFromFloat(10),
+			}
 			actual := e.CalculateNextDeclarationDate()
 			if !actual.Equal(tt.want) {
 				t.Errorf("got %v, want %v", actual, tt.want)

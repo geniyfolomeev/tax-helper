@@ -1,15 +1,15 @@
 package db
 
 import (
+	"context"
 	"tax-helper/internal/config"
-	"tax-helper/internal/infrastructure/repository"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type DB struct {
-	Conn *gorm.DB
+	conn *gorm.DB
 }
 
 func NewDB(cfg *config.Config) (*DB, error) {
@@ -23,9 +23,21 @@ func NewDB(cfg *config.Config) (*DB, error) {
 	}
 	dbSettings.SetMaxOpenConns(cfg.DBMaxOpenConnections)
 	dbSettings.SetMaxIdleConns(cfg.DBMaxIdleConnections)
-	return &DB{Conn: conn}, nil
+	return &DB{conn: conn}, nil
+}
+
+func (db *DB) DefaultConnection() *gorm.DB {
+	return db.conn
+}
+
+func (db *DB) Connection(ctx context.Context) *gorm.DB {
+	txCtx, ok := getTx(ctx)
+	if ok {
+		return txCtx
+	}
+	return db.DefaultConnection()
 }
 
 func (db *DB) Migrate() error {
-	return db.Conn.AutoMigrate(&repository.Entrepreneur{}, &repository.Tasks{})
+	return db.conn.AutoMigrate(&Entrepreneur{}, &Tasks{}, &Income{})
 }
