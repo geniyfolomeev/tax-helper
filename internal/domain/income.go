@@ -7,7 +7,7 @@ import (
 )
 
 type Income struct {
-	EntrepreneurID uint
+	EntrepreneurID int64
 	Date           time.Time
 	Amount         decimal.Decimal
 	SourceAmount   decimal.Decimal

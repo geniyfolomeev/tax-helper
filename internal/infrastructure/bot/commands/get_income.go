@@ -24,7 +24,7 @@ func (h *GetIncomeHandler) Command() tgbotapi.BotCommand {
 }
 
 func (h *GetIncomeHandler) Handle(ctx context.Context, msg *tgbotapi.Message) tgbotapi.MessageConfig {
-	actualIncome, err := h.service.GetActualIncome(ctx, uint(msg.Chat.ID))
+	actualIncome, err := h.service.GetActualIncome(ctx, msg.Chat.ID)
 	if err != nil {
 		return tgbotapi.NewMessage(msg.Chat.ID, err.Error())
 	}

@@ -19,7 +19,7 @@ func NewEntrepreneurRepo(db *db.DB) *EntrepreneurRepo {
 	return &EntrepreneurRepo{db: db}
 }
 
-func (r *EntrepreneurRepo) GetByID(ctx context.Context, id uint) (*domain.Entrepreneur, error) {
+func (r *EntrepreneurRepo) GetByID(ctx context.Context, id int64) (*domain.Entrepreneur, error) {
 	var e db.Entrepreneur
 	if err := r.db.Connection(ctx).Where(&db.Entrepreneur{ID: id}).First(&e).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

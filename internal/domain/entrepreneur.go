@@ -13,7 +13,7 @@ const (
 )
 
 type Entrepreneur struct {
-	TelegramID      uint
+	TelegramID      int64
 	Status          string
 	RegisteredAt    time.Time // Entrepreneur registered at RegisteredAt, it's not CreatedAt!
 	LastSentAt      time.Time // Entrepreneur sent last declaration at LastSentAt (Could be zero date!)

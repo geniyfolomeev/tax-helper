@@ -1,10 +1,15 @@
 package main
 
 import (
+	"errors"
+	"flag"
 	"log"
+	"path/filepath"
 	"tax-helper/internal/config"
-	"tax-helper/internal/infrastructure/db"
-	logging "tax-helper/internal/logger"
+
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func main() {
@@ -13,20 +18,32 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger, err := logging.NewLogger(cfg.LoggingMode)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer logger.Sync()
+	action := flag.String("action", "up", "migration action: up or down")
+	flag.Parse()
 
-	database, err := db.NewDB(cfg)
+	migrationsPath, err := filepath.Abs("internal/migrations")
 	if err != nil {
 		log.Fatal(err)
 	}
-	// TODO: проверять нужны ли вообще миграции или схема БД актуальная
-	err = database.Migrate()
+
+	m, err := migrate.New(
+		"file://"+filepath.ToSlash(migrationsPath),
+		cfg.DBDsn,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	logger.Info("Migrations completed")
+
+	switch *action {
+	case "up":
+		if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+			log.Fatal(err)
+		}
+	case "down":
+		if err := m.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+			log.Fatal(err)
+		}
+	default:
+		log.Fatalf("unknown action: %s, expected 'up' or 'down'", *action)
+	}
 }

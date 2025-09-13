@@ -20,7 +20,7 @@ func NewIncomeRepo(db *db.DB) *IncomeRepo {
 
 func (r *IncomeRepo) AddIncome(ctx context.Context, income *domain.Income) error {
 	model := &db.Income{
-		TelegramID:     income.EntrepreneurID,
+		EntrepreneurID: income.EntrepreneurID,
 		Date:           income.Date,
 		Amount:         income.Amount,
 		SourceAmount:   income.SourceAmount,
@@ -33,10 +33,10 @@ func (r *IncomeRepo) AddIncome(ctx context.Context, income *domain.Income) error
 	return nil
 }
 
-func (r *IncomeRepo) GetIncomeByPeriod(ctx context.Context, tgID uint, dateFrom time.Time, dateTo time.Time) ([]*domain.Income, error) {
+func (r *IncomeRepo) GetIncomeByPeriod(ctx context.Context, tgID int64, dateFrom time.Time, dateTo time.Time) ([]*domain.Income, error) {
 	var rows []*db.Income
 	err := r.db.Connection(ctx).
-		Where("telegram_id = ? AND date BETWEEN ? AND ?", tgID, dateFrom, dateTo).
+		Where("entrepreneur_id = ? AND date BETWEEN ? AND ?", tgID, dateFrom, dateTo).
 		Find(&rows).Error
 
 	if err != nil {
@@ -46,7 +46,7 @@ func (r *IncomeRepo) GetIncomeByPeriod(ctx context.Context, tgID uint, dateFrom 
 	incomes := make([]*domain.Income, len(rows))
 	for i, row := range rows {
 		incomes[i] = &domain.Income{
-			EntrepreneurID: row.TelegramID,
+			EntrepreneurID: row.EntrepreneurID,
 			Date:           row.Date,
 			Amount:         row.Amount,
 			SourceAmount:   row.SourceAmount,

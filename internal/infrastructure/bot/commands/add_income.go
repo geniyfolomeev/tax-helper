@@ -67,7 +67,7 @@ func (h *AddIncomeHandler) Handle(ctx context.Context, msg *tgbotapi.Message) tg
 		return tgbotapi.NewMessage(msg.Chat.ID, err.Error())
 	}
 
-	err = h.service.AddIncome(ctx, uint(msg.Chat.ID), args.amount, args.currency, args.incomeDate)
+	err = h.service.AddIncome(ctx, msg.Chat.ID, args.amount, args.currency, args.incomeDate)
 	if err != nil {
 		return tgbotapi.NewMessage(msg.Chat.ID, err.Error())
 	}

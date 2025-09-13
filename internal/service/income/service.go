@@ -13,7 +13,7 @@ import (
 
 type UserIncomeRepo interface {
 	AddIncome(ctx context.Context, income *domain.Income) error
-	GetIncomeByPeriod(ctx context.Context, tgID uint, dateFrom time.Time, dateTo time.Time) ([]*domain.Income, error)
+	GetIncomeByPeriod(ctx context.Context, tgID int64, dateFrom time.Time, dateTo time.Time) ([]*domain.Income, error)
 }
 
 type RateService interface {
@@ -34,7 +34,7 @@ func NewIncomeService(ir UserIncomeRepo, rs RateService, l logger.Logger) *Servi
 	}
 }
 
-func (s *Service) AddIncome(ctx context.Context, tgID uint, amount float64, currency string, date time.Time) error {
+func (s *Service) AddIncome(ctx context.Context, tgID int64, amount float64, currency string, date time.Time) error {
 	income := &domain.Income{
 		EntrepreneurID: tgID,
 		Amount:         decimal.NewFromFloat(0),
@@ -64,7 +64,7 @@ func (s *Service) AddIncome(ctx context.Context, tgID uint, amount float64, curr
 }
 
 // GetActualIncome - get Entrepreneur income for previous and current month
-func (s *Service) GetActualIncome(ctx context.Context, tgID uint) (*domain.ActualIncome, error) {
+func (s *Service) GetActualIncome(ctx context.Context, tgID int64) (*domain.ActualIncome, error) {
 	prevFrom, _, _, curTo := domain.GetActualTimeIntervals()
 	incomes, err := s.incomeRepo.GetIncomeByPeriod(ctx, tgID, prevFrom, curTo)
 	if err != nil {

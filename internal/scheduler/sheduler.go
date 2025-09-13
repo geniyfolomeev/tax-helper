@@ -50,7 +50,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 				}
 
 				for _, task := range tasks {
-					if err := s.bot.SendMessage(task.TelegramID, "Заглушка по отпрравке деклеарации"); err != nil {
+					if err := s.bot.SendMessage(task.EntrepreneurID, "Заглушка по отпрравке деклеарации"); err != nil {
 						s.logger.Error("Ошибка при пометке:", err)
 						continue
 					}

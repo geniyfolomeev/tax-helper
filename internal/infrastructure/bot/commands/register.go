@@ -1,3 +1,4 @@
+//go:generate mockgen -source=$GOFILE -destination=mocks/mock_register.go -package=mocks
 package commands
 
 import (
@@ -8,7 +9,6 @@ import (
 	"strings"
 	"tax-helper/internal/domain"
 	"tax-helper/internal/logger"
-	"tax-helper/internal/service/entrepreneur"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -16,8 +16,12 @@ import (
 
 const registerExample = "/register DD.MM.YYYY AMOUNT [LAST_SENT_DATE]"
 
+type entrepreneurCreator interface {
+	CreateEntrepreneur(ctx context.Context, tgID int64, regAt, lastAt time.Time, yta float64) error
+}
+
 type RegisterHandler struct {
-	service *entrepreneur.Service
+	service entrepreneurCreator
 	logger  logger.Logger
 }
 
@@ -27,7 +31,7 @@ type registerArgs struct {
 	lastSentAt   time.Time
 }
 
-func NewRegisterHandler(s *entrepreneur.Service, l logger.Logger) *RegisterHandler {
+func NewRegisterHandler(s entrepreneurCreator, l logger.Logger) *RegisterHandler {
 	return &RegisterHandler{service: s, logger: l}
 }
 
@@ -80,7 +84,7 @@ func (h *RegisterHandler) Handle(ctx context.Context, msg *tgbotapi.Message) tgb
 		return tgbotapi.NewMessage(msg.Chat.ID, err.Error())
 	}
 
-	err = h.service.CreateEntrepreneur(ctx, uint(msg.Chat.ID), args.registeredAt, args.lastSentAt, args.amount)
+	err = h.service.CreateEntrepreneur(ctx, msg.Chat.ID, args.registeredAt, args.lastSentAt, args.amount)
 	if err != nil {
 		if errors.Is(err, domain.ErrValidation) {
 			return tgbotapi.NewMessage(msg.Chat.ID, err.Error())

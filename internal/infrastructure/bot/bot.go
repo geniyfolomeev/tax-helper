@@ -96,8 +96,8 @@ func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	}
 }
 
-func (bot *Bot) SendMessage(chatID uint, text string) error {
-	msg := tgbotapi.NewMessage(int64(chatID), text)
+func (bot *Bot) SendMessage(chatID int64, text string) error {
+	msg := tgbotapi.NewMessage(chatID, text)
 	_, err := bot.api.Send(msg)
 	if err != nil {
 		bot.logger.Errorf("Failed to send message to chat %d: %v", chatID, err)

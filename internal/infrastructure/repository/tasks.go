@@ -19,10 +19,10 @@ func (r *TasksRepo) CreateBatch(ctx context.Context, tasks []*domain.Task) error
 	models := make([]*db.Tasks, len(tasks))
 	for i, t := range tasks {
 		models[i] = &db.Tasks{
-			TelegramID: t.TelegramID,
-			Status:     t.Status,
-			Type:       t.Type,
-			RunAt:      t.RunAt,
+			EntrepreneurID: t.EntrepreneurID,
+			Status:         t.Status,
+			Type:           t.Type,
+			RunAt:          t.RunAt,
 		}
 	}
 	return r.db.Connection(ctx).Create(&models).Error
@@ -38,7 +38,7 @@ func (r *TasksRepo) GetPendingTasks(ctx context.Context) ([]db.Tasks, error) {
 	return tasks, nil
 }
 
-func (r *TasksRepo) MarkAsNotified(ctx context.Context, id uint) error {
+func (r *TasksRepo) MarkAsNotified(ctx context.Context, id int64) error {
 	return r.db.Connection(ctx).Model(&db.Tasks{}).
 		Where("id = ?", id).
 		Update("status", "done").Error

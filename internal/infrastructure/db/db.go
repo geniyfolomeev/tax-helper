@@ -37,7 +37,3 @@ func (db *DB) Connection(ctx context.Context) *gorm.DB {
 	}
 	return db.DefaultConnection()
 }
-
-func (db *DB) Migrate() error {
-	return db.conn.AutoMigrate(&Entrepreneur{}, &Tasks{}, &Income{})
-}
