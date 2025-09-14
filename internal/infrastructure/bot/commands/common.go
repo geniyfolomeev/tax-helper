@@ -10,6 +10,8 @@ func escapeMarkdownV2(text string) string {
 		"(", "\\(",
 		")", "\\)",
 		"_", "\\_",
+		">", "\\>",
+		"<", "\\<",
 	)
 	return replacer.Replace(text)
 }

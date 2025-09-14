@@ -30,9 +30,6 @@ func (e *Entrepreneur) Validate() error {
 	if e.LastSentAt.IsZero() && !e.YearTotalAmount.IsZero() {
 		return fmt.Errorf("%w: yearly amount must be zero until the first declaration is sent", ErrValidation)
 	}
-	if !e.LastSentAt.IsZero() && e.YearTotalAmount.IsZero() {
-		return fmt.Errorf("%w: yearly amount cannot be zero after at least one declaration has been sent", ErrValidation)
-	}
 	if !e.LastSentAt.IsZero() && e.RegisteredAt.After(e.LastSentAt) {
 		return fmt.Errorf("%w: registration date cannot be after your last declaration", ErrValidation)
 	}
