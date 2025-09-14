@@ -1,5 +1,7 @@
 package domain
 
+import "context"
+
 type Notifier interface {
-	SendMessage(userID int64, message string) error
+	Process(ctx context.Context, task Task) error
 }

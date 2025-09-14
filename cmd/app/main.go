@@ -9,10 +9,10 @@ import (
 	"sync"
 	"syscall"
 	"tax-helper/internal/config"
-	"tax-helper/internal/infrastructure/adapters"
 	"tax-helper/internal/infrastructure/bot"
 	"tax-helper/internal/infrastructure/db"
 	"tax-helper/internal/infrastructure/http"
+	"tax-helper/internal/infrastructure/processors"
 	"tax-helper/internal/infrastructure/repository"
 	logging "tax-helper/internal/logger"
 	"tax-helper/internal/scheduler"
@@ -50,13 +50,14 @@ func main() {
 	entrepreneurRepo := repository.NewEntrepreneurRepo(database)
 	tasksRepo := repository.NewTasksRepo(database)
 	incomeRepo := repository.NewIncomeRepo(database)
-	notifiers := adapters.CompositionsAdapters(botApi)
+
 	rateService := rate.NewService(httpClient, logger)
 	entrepreneurService := entrepreneur.NewService(entrepreneurRepo, tasksRepo, txManager)
 	incomeService := income.NewIncomeService(incomeRepo, rateService, logger)
-	tasksService := task.NewService(tasksRepo, notifiers)
+	tasksService := task.NewService(tasksRepo)
 
 	tgBot, err := bot.NewBot(entrepreneurService, incomeService, logger, botApi)
+	processors.CompositionsAdapters(tgBot)
 	if err != nil {
 		log.Fatal(err)
 	}
