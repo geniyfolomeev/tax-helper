@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -22,6 +23,7 @@ type Config struct {
 func NewConfig() (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
+		fmt.Println("Error loading .env file")
 	}
 	maxOpenConnections, err := strconv.Atoi(os.Getenv("DB_MAX_OPEN_CONNECTIONS"))
 	if err != nil {

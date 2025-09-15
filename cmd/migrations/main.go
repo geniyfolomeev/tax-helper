@@ -21,7 +21,7 @@ func main() {
 	action := flag.String("action", "up", "migration action: up or down")
 	flag.Parse()
 
-	migrationsPath, err := filepath.Abs("internal/migrations")
+	migrationsPath, err := filepath.Abs("../../internal/migrations")
 	if err != nil {
 		log.Fatal(err)
 	}

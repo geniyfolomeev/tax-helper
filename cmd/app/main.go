@@ -73,7 +73,15 @@ func main() {
 		}
 	}()
 
-	s := scheduler.NewScheduler(*tasksService, time.Hour, tgBot, logger, *tasksRepo)
+	s := scheduler.NewScheduler(
+		tasksService,
+		time.Hour*24, // TODO интервал тиков наверное в конфиг вынести
+		botApi,
+		logger,
+		tasksRepo,
+		txManager,
+		&scheduler.RealClock{},
+	)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
