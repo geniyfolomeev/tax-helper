@@ -31,7 +31,7 @@ func (r *TasksRepo) CreateBatch(ctx context.Context, tasks []*domain.Task) error
 func (r *TasksRepo) GetPendingTasks(ctx context.Context) ([]db.Tasks, error) {
 	var dbTasks []db.Tasks
 	if err := r.db.Connection(ctx).
-		Where("run_at <= ? AND notified = ?", time.Now(), false).
+		Where("run_at <= ? AND status = ?", time.Now(), "active").
 		Find(&dbTasks).Error; err != nil {
 		return nil, err
 	}
