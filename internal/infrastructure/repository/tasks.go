@@ -39,12 +39,12 @@ func (r *TasksRepo) GetPendingTasks(ctx context.Context) ([]db.Tasks, error) {
 	tasks := make([]db.Tasks, 0, len(dbTasks))
 	for _, dbTask := range dbTasks {
 		tasks = append(tasks, db.Tasks{
-			ID:           dbTask.ID,
-			TelegramID:   dbTask.TelegramID,
-			TelegramUser: dbTask.TelegramUser,
-			Status:       dbTask.Status,
-			Type:         dbTask.Type,
-			RunAt:        dbTask.RunAt,
+			ID:             dbTask.ID,
+			EntrepreneurID: dbTask.EntrepreneurID,
+			Entrepreneur:   dbTask.Entrepreneur,
+			Status:         dbTask.Status,
+			Type:           dbTask.Type,
+			RunAt:          dbTask.RunAt,
 		})
 	}
 

@@ -30,8 +30,8 @@ func NewSendDeclarationProcessor(botClient *bot.Bot, tasksService task.TasksServ
 
 func (p *SendDeclarationProcessor) Process(ctx context.Context, t db.Tasks) error {
 	text := fmt.Sprintf("Пожалуйста, отправьте декларацию за отчётный месяц — не забудьте, спасибо!")
-	if err := p.bot.SendMessage(ctx, t.TelegramID, text); err != nil {
-		p.logger.Errorf("telegram send error for %d: %v", t.TelegramID, err)
+	if err := p.bot.SendMessage(ctx, t.EntrepreneurID, text); err != nil {
+		p.logger.Errorf("telegram send error for %d: %v", t.EntrepreneurID, err)
 		return err
 	}
 
@@ -41,10 +41,10 @@ func (p *SendDeclarationProcessor) Process(ctx context.Context, t db.Tasks) erro
 	}
 
 	next := &domain.Task{
-		RunAt:      time.Now().Add(24 * time.Hour),
-		Status:     "pending",
-		Type:       "send_declaration",
-		TelegramID: t.TelegramID,
+		RunAt:          time.Now().Add(24 * time.Hour),
+		Status:         "pending",
+		Type:           "send_declaration",
+		EntrepreneurID: t.EntrepreneurID,
 	}
 
 	if err := p.repo.CreateBatch(ctx, []*domain.Task{next}); err != nil {
@@ -52,6 +52,6 @@ func (p *SendDeclarationProcessor) Process(ctx context.Context, t db.Tasks) erro
 		return err
 	}
 
-	p.logger.Info("send_declaration processed for %d", t.TelegramID)
+	p.logger.Info("send_declaration processed for %d", t.EntrepreneurID)
 	return nil
 }

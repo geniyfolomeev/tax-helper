@@ -24,7 +24,6 @@ type Bot struct {
 }
 
 func NewBot(es *entrepreneur.Service, is *income.Service, log logger.Logger, botApi *tgbotapi.BotAPI) (*Bot, error) {
-
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 

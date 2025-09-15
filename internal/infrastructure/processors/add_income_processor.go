@@ -25,8 +25,8 @@ func NewAddIncomeProcessor(botClient *bot.Bot, tasksService task.TasksService, l
 
 func (p *AddIncomeProcessor) Process(ctx context.Context, t db.Tasks) error {
 	text := fmt.Sprintf("Пора внести сведения о доходе за отчётный месяц — отправьте, пожалуйста.")
-	if err := p.bot.SendMessage(ctx, t.TelegramID, text); err != nil {
-		p.logger.Errorf("telegram send error for %d: %v", t.TelegramID, err)
+	if err := p.bot.SendMessage(ctx, t.EntrepreneurID, text); err != nil {
+		p.logger.Errorf("telegram send error for %d: %v", t.EntrepreneurID, err)
 		return err
 	}
 
@@ -35,10 +35,10 @@ func (p *AddIncomeProcessor) Process(ctx context.Context, t db.Tasks) error {
 		return err
 	}
 	next := &domain.Task{
-		RunAt:      time.Now().Add(24 * time.Hour),
-		Status:     "pending",
-		Type:       "add_income",
-		TelegramID: t.TelegramID,
+		RunAt:          time.Now().Add(24 * time.Hour),
+		Status:         "pending",
+		Type:           "add_income",
+		EntrepreneurID: t.EntrepreneurID,
 	}
 
 	if err := p.repo.CreateBatch(ctx, []*domain.Task{next}); err != nil {
@@ -46,6 +46,6 @@ func (p *AddIncomeProcessor) Process(ctx context.Context, t db.Tasks) error {
 		return err
 	}
 
-	p.logger.Info("add_income processed for %d", t.TelegramID)
+	p.logger.Info("add_income processed for %d", t.EntrepreneurID)
 	return nil
 }
