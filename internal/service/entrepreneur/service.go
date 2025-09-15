@@ -9,7 +9,7 @@ import (
 )
 
 type EntrepreneursRepo interface {
-	GetByID(ctx context.Context, id uint) (*domain.Entrepreneur, error)
+	GetByID(ctx context.Context, id int64) (*domain.Entrepreneur, error)
 	Create(ctx context.Context, e *domain.Entrepreneur) error
 }
 
@@ -39,7 +39,7 @@ func NewService(
 	}
 }
 
-func (s *Service) CreateEntrepreneur(ctx context.Context, tgID uint, regAt, lastAt time.Time, yta float64) error {
+func (s *Service) CreateEntrepreneur(ctx context.Context, tgID int64, regAt, lastAt time.Time, yta float64) error {
 	e := &domain.Entrepreneur{
 		TelegramID:      tgID,
 		Status:          "active",

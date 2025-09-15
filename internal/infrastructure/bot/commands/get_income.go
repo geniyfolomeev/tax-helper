@@ -23,11 +23,10 @@ func (h *GetIncomeHandler) Command() tgbotapi.BotCommand {
 	}
 }
 
-func (h *GetIncomeHandler) Handle(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error) {
-	actualIncome, err := h.service.GetActualIncome(ctx, uint(msg.Chat.ID))
+func (h *GetIncomeHandler) Handle(ctx context.Context, msg *tgbotapi.Message) tgbotapi.MessageConfig {
+	actualIncome, err := h.service.GetActualIncome(ctx, msg.Chat.ID)
 	if err != nil {
-		reply := tgbotapi.NewMessage(msg.Chat.ID, err.Error())
-		return api.Send(reply)
+		return tgbotapi.NewMessage(msg.Chat.ID, err.Error())
 	}
 
 	text := "*Your income*\n\n"
@@ -57,5 +56,5 @@ func (h *GetIncomeHandler) Handle(ctx context.Context, api *tgbotapi.BotAPI, msg
 
 	reply := tgbotapi.NewMessage(msg.Chat.ID, escapeMarkdownV2(text))
 	reply.ParseMode = "MarkdownV2"
-	return api.Send(reply)
+	return reply
 }

@@ -18,6 +18,6 @@ func (s *TasksService) GetDueTasks(ctx context.Context) ([]db.Tasks, error) {
 	return s.repo.GetPendingTasks(ctx)
 }
 
-func (s *TasksService) CompleteNotification(ctx context.Context, id uint) error {
+func (s *TasksService) CompleteNotification(ctx context.Context, id int64) error {
 	return s.repo.MarkAsNotified(ctx, id)
 }

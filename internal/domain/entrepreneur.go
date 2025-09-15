@@ -13,7 +13,7 @@ const (
 )
 
 type Entrepreneur struct {
-	TelegramID      uint
+	TelegramID      int64
 	Status          string
 	RegisteredAt    time.Time // Entrepreneur registered at RegisteredAt, it's not CreatedAt!
 	LastSentAt      time.Time // Entrepreneur sent last declaration at LastSentAt (Could be zero date!)
@@ -29,9 +29,6 @@ func (e *Entrepreneur) Validate() error {
 	}
 	if e.LastSentAt.IsZero() && !e.YearTotalAmount.IsZero() {
 		return fmt.Errorf("%w: yearly amount must be zero until the first declaration is sent", ErrValidation)
-	}
-	if !e.LastSentAt.IsZero() && e.YearTotalAmount.IsZero() {
-		return fmt.Errorf("%w: yearly amount cannot be zero after at least one declaration has been sent", ErrValidation)
 	}
 	if !e.LastSentAt.IsZero() && e.RegisteredAt.After(e.LastSentAt) {
 		return fmt.Errorf("%w: registration date cannot be after your last declaration", ErrValidation)

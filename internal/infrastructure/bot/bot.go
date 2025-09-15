@@ -13,7 +13,7 @@ import (
 
 type handler interface {
 	Command() tgbotapi.BotCommand
-	Handle(ctx context.Context, api *tgbotapi.BotAPI, msg *tgbotapi.Message) (tgbotapi.Message, error)
+	Handle(ctx context.Context, msg *tgbotapi.Message) tgbotapi.MessageConfig
 }
 
 type Bot struct {
@@ -30,7 +30,7 @@ func NewBot(es *entrepreneur.Service, is *income.Service, log logger.Logger, bot
 
 	handlers := []handler{
 		commands.NewStartHandler(),
-		commands.NewHelpHandler(log),
+		commands.NewHelpHandler(log, botApi),
 		commands.NewRegisterHandler(es, log),
 		commands.NewAddIncomeHandler(is),
 		commands.NewGetIncomeHandler(is),
@@ -78,7 +78,8 @@ func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 		// TODO: default handler
 		return
 	}
-	_, err := h.Handle(ctx, bot.api, update.Message)
+	msg := h.Handle(ctx, update.Message)
+	_, err := bot.api.Send(msg)
 	if err != nil {
 		bot.logger.Errorf(
 			"failed to handle command=%q user_id=%d username=%q text=%q: %v",
@@ -91,8 +92,8 @@ func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	}
 }
 
-func (bot *Bot) SendMessage(ctx context.Context, chatID uint, text string) error {
-	msg := tgbotapi.NewMessage(int64(chatID), text)
+func (bot *Bot) SendMessage(ctx context.Context, chatID int64, text string) error {
+	msg := tgbotapi.NewMessage(chatID, text)
 	_, err := bot.api.Send(msg)
 	if err != nil {
 		bot.logger.Errorf("Failed to send message to chat %d: %v", chatID, err)
