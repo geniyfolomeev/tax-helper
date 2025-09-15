@@ -2,7 +2,7 @@ package task
 
 import (
 	"context"
-	"tax-helper/internal/domain"
+	"tax-helper/internal/infrastructure/db"
 	"tax-helper/internal/infrastructure/repository"
 )
 
@@ -14,7 +14,7 @@ func NewService(repo *repository.TasksRepo) *TasksService {
 	return &TasksService{repo: repo}
 }
 
-func (s *TasksService) GetDueTasks(ctx context.Context) ([]domain.Task, error) {
+func (s *TasksService) GetDueTasks(ctx context.Context) ([]db.Tasks, error) {
 	return s.repo.GetPendingTasks(ctx)
 }
 

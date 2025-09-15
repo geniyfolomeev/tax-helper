@@ -12,7 +12,6 @@ import (
 	"tax-helper/internal/infrastructure/bot"
 	"tax-helper/internal/infrastructure/db"
 	"tax-helper/internal/infrastructure/http"
-	"tax-helper/internal/infrastructure/processors"
 	"tax-helper/internal/infrastructure/repository"
 	logging "tax-helper/internal/logger"
 	"tax-helper/internal/scheduler"
@@ -57,7 +56,6 @@ func main() {
 	tasksService := task.NewService(tasksRepo)
 
 	tgBot, err := bot.NewBot(entrepreneurService, incomeService, logger, botApi)
-	processors.CompositionsAdapters(tgBot)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -75,8 +73,12 @@ func main() {
 		}
 	}()
 
-	s := scheduler.NewScheduler(tasksService, time.Hour)
-	s.Start(ctx)
+	s := scheduler.NewScheduler(*tasksService, time.Hour, tgBot, logger, *tasksRepo)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.Start(ctx)
+	}()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)

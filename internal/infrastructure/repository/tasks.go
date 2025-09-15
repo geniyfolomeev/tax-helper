@@ -28,7 +28,7 @@ func (r *TasksRepo) CreateBatch(ctx context.Context, tasks []*domain.Task) error
 	return r.db.Connection(ctx).Create(&models).Error
 }
 
-func (r *TasksRepo) GetPendingTasks(ctx context.Context) ([]domain.Task, error) {
+func (r *TasksRepo) GetPendingTasks(ctx context.Context) ([]db.Tasks, error) {
 	var dbTasks []db.Tasks
 	if err := r.db.Connection(ctx).
 		Where("run_at <= ? AND notified = ?", time.Now(), false).
@@ -36,13 +36,15 @@ func (r *TasksRepo) GetPendingTasks(ctx context.Context) ([]domain.Task, error) 
 		return nil, err
 	}
 
-	tasks := make([]domain.Task, 0, len(dbTasks))
+	tasks := make([]db.Tasks, 0, len(dbTasks))
 	for _, dbTask := range dbTasks {
-		tasks = append(tasks, domain.Task{
-			TelegramID: dbTask.TelegramID,
-			Status:     dbTask.Status,
-			Type:       dbTask.Type,
-			RunAt:      dbTask.RunAt,
+		tasks = append(tasks, db.Tasks{
+			ID:           dbTask.ID,
+			TelegramID:   dbTask.TelegramID,
+			TelegramUser: dbTask.TelegramUser,
+			Status:       dbTask.Status,
+			Type:         dbTask.Type,
+			RunAt:        dbTask.RunAt,
 		})
 	}
 

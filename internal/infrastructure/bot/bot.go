@@ -91,7 +91,7 @@ func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	}
 }
 
-func (bot *Bot) SendMessage(chatID uint, text string) error {
+func (bot *Bot) SendMessage(ctx context.Context, chatID uint, text string) error {
 	msg := tgbotapi.NewMessage(int64(chatID), text)
 	_, err := bot.api.Send(msg)
 	if err != nil {
