@@ -4,20 +4,26 @@ import (
 	"context"
 	"tax-helper/internal/infrastructure/db"
 	"tax-helper/internal/infrastructure/repository"
+	"time"
 )
 
-type TasksService struct {
-	repo *repository.TasksRepo
+type TasksService interface {
+	GetDueTasks(ctx context.Context, now time.Time) ([]db.Tasks, error)
+	CompleteNotification(ctx context.Context, id int64) error
 }
 
-func NewService(repo *repository.TasksRepo) *TasksService {
-	return &TasksService{repo: repo}
+type tasksService struct {
+	repo repository.TasksRepository
 }
 
-func (s *TasksService) GetDueTasks(ctx context.Context) ([]db.Tasks, error) {
-	return s.repo.GetPendingTasks(ctx)
+func NewService(repo repository.TasksRepository) TasksService {
+	return &tasksService{repo: repo}
 }
 
-func (s *TasksService) CompleteNotification(ctx context.Context, id int64) error {
+func (s *tasksService) GetDueTasks(ctx context.Context, timeNow time.Time) ([]db.Tasks, error) {
+	return s.repo.GetReadyTasks(ctx, timeNow)
+}
+
+func (s *tasksService) CompleteNotification(ctx context.Context, id int64) error {
 	return s.repo.MarkAsNotified(ctx, id)
 }

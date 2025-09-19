@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"os"
 	"os/signal"
@@ -37,6 +38,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	botApi, err := tgbotapi.NewBotAPI(cfg.BotToken)
+	if err != nil {
+		log.Fatalf("failed to init bot: %v", err)
+	}
 
 	txManager := db.NewTxManager(database.DefaultConnection())
 	httpClient := http.NewClient(cfg.RateUrl, time.Second*5, logger)
@@ -50,7 +55,7 @@ func main() {
 	incomeService := income.NewIncomeService(incomeRepo, rateService, logger)
 	tasksService := task.NewService(tasksRepo)
 
-	tgBot, err := bot.NewBot(cfg, entrepreneurService, incomeService, logger)
+	tgBot, err := bot.NewBot(entrepreneurService, incomeService, logger, botApi)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,8 +73,20 @@ func main() {
 		}
 	}()
 
-	s := scheduler.NewScheduler(tasksService, time.Hour, tgBot, logger)
-	s.Start(ctx)
+	s := scheduler.NewScheduler(
+		tasksService,
+		time.Hour*24, // TODO интервал тиков наверное в конфиг вынести
+		botApi,
+		logger,
+		tasksRepo,
+		txManager,
+		&scheduler.RealClock{},
+	)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.Start(ctx)
+	}()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)

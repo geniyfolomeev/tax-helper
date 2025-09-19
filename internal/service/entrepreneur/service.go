@@ -55,7 +55,7 @@ func (s *Service) CreateEntrepreneur(ctx context.Context, tgID int64, regAt, las
 	nextDeclarationDate := e.CalculateNextDeclarationDate()
 	tasks := []*domain.Task{
 		domain.NewTask(e.TelegramID, "ready", "add_income", nextDeclarationDate),
-		domain.NewTask(e.TelegramID, "ready", "submit declaration", nextDeclarationDate),
+		domain.NewTask(e.TelegramID, "ready", "submit_declaration", nextDeclarationDate),
 	}
 
 	return s.txManager.Transaction(ctx, func(ctx context.Context) error {

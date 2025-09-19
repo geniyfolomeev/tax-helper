@@ -7,15 +7,21 @@ import (
 	"time"
 )
 
-type TasksRepo struct {
+type TasksRepository interface {
+	CreateBatch(ctx context.Context, tasks []*domain.Task) error
+	GetReadyTasks(ctx context.Context, timeNow time.Time) ([]db.Tasks, error)
+	MarkAsNotified(ctx context.Context, id int64) error
+}
+
+type tasksRepo struct {
 	db *db.DB
 }
 
-func NewTasksRepo(db *db.DB) *TasksRepo {
-	return &TasksRepo{db: db}
+func NewTasksRepo(db *db.DB) TasksRepository {
+	return &tasksRepo{db: db}
 }
 
-func (r *TasksRepo) CreateBatch(ctx context.Context, tasks []*domain.Task) error {
+func (r *tasksRepo) CreateBatch(ctx context.Context, tasks []*domain.Task) error {
 	models := make([]*db.Tasks, len(tasks))
 	for i, t := range tasks {
 		models[i] = &db.Tasks{
@@ -28,17 +34,18 @@ func (r *TasksRepo) CreateBatch(ctx context.Context, tasks []*domain.Task) error
 	return r.db.Connection(ctx).Create(&models).Error
 }
 
-func (r *TasksRepo) GetPendingTasks(ctx context.Context) ([]db.Tasks, error) {
-	var tasks []db.Tasks
+func (r *tasksRepo) GetReadyTasks(ctx context.Context, timeNow time.Time) ([]db.Tasks, error) {
+	var dbTasks []db.Tasks
+
 	if err := r.db.Connection(ctx).
-		Where("run_at <= ? AND notified = ?", time.Now(), false).
-		Find(&tasks).Error; err != nil {
+		Where("run_at >= ? AND status = ?", timeNow, "ready"). //Todo run_at >= ? или <=
+		Find(&dbTasks).Error; err != nil {
 		return nil, err
 	}
-	return tasks, nil
+	return dbTasks, nil
 }
 
-func (r *TasksRepo) MarkAsNotified(ctx context.Context, id int64) error {
+func (r *tasksRepo) MarkAsNotified(ctx context.Context, id int64) error {
 	return r.db.Connection(ctx).Model(&db.Tasks{}).
 		Where("id = ?", id).
 		Update("status", "done").Error

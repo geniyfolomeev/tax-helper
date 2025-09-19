@@ -3,7 +3,6 @@ package bot
 import (
 	"context"
 	"runtime/debug"
-	"tax-helper/internal/config"
 	"tax-helper/internal/infrastructure/bot/commands"
 	"tax-helper/internal/logger"
 	"tax-helper/internal/service/entrepreneur"
@@ -24,11 +23,7 @@ type Bot struct {
 	logger       logger.Logger
 }
 
-func NewBot(cfg *config.Config, es *entrepreneur.Service, is *income.Service, log logger.Logger) (*Bot, error) {
-	botApi, err := tgbotapi.NewBotAPI(cfg.BotToken)
-	if err != nil {
-		return nil, err
-	}
+func NewBot(es *entrepreneur.Service, is *income.Service, log logger.Logger, botApi *tgbotapi.BotAPI) (*Bot, error) {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -49,7 +44,7 @@ func NewBot(cfg *config.Config, es *entrepreneur.Service, is *income.Service, lo
 	botCfg := tgbotapi.SetMyCommandsConfig{
 		Commands: cfgCommands,
 	}
-	_, err = botApi.Request(botCfg)
+	_, err := botApi.Request(botCfg)
 	if err != nil {
 		return nil, err
 	}
@@ -94,16 +89,6 @@ func (bot *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 			err,
 		)
 	}
-}
-
-func (bot *Bot) SendMessage(chatID int64, text string) error {
-	msg := tgbotapi.NewMessage(chatID, text)
-	_, err := bot.api.Send(msg)
-	if err != nil {
-		bot.logger.Errorf("Failed to send message to chat %d: %v", chatID, err)
-		return err
-	}
-	return nil
 }
 
 func (bot *Bot) Run(ctx context.Context) error {

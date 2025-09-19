@@ -2,64 +2,98 @@ package scheduler
 
 import (
 	"context"
-	"fmt"
-	"tax-helper/internal/infrastructure/bot"
+	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+
+	"tax-helper/internal/infrastructure/db"
+	"tax-helper/internal/infrastructure/processors"
+	"tax-helper/internal/infrastructure/repository"
 	"tax-helper/internal/logger"
 	"tax-helper/internal/service/task"
-	"time"
 )
 
-type Scheduler struct {
-	service  *task.TasksService
-	interval time.Duration
-	bot      *bot.Bot
-	logger   logger.Logger
+type Notifier interface {
+	Process(ctx context.Context, task db.Tasks) error
 }
 
-func NewScheduler(service *task.TasksService, interval time.Duration, bot *bot.Bot, log logger.Logger) *Scheduler {
-	return &Scheduler{
-		service:  service,
-		interval: interval,
-		bot:      bot,
-		logger:   log,
+type Clock interface {
+	Now() time.Time
+}
+
+type RealClock struct{}
+
+func (c *RealClock) Now() time.Time {
+	return time.Now()
+}
+
+type TxManager interface {
+	Transaction(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
+type Scheduler struct {
+	svc        task.TasksService
+	ticker     *time.Ticker
+	processors map[string]Notifier
+	logger     logger.Logger
+	repo       repository.TasksRepository
+	txManager  TxManager
+	clock      Clock
+}
+
+func NewScheduler(
+	taskService task.TasksService,
+	interval time.Duration,
+	botClient *tgbotapi.BotAPI,
+	logger logger.Logger,
+	repo repository.TasksRepository,
+	txManager TxManager,
+	clock Clock,
+) *Scheduler {
+	s := &Scheduler{
+		svc:       taskService,
+		ticker:    time.NewTicker(interval),
+		logger:    logger,
+		repo:      repo,
+		txManager: txManager,
+		clock:     clock,
 	}
+
+	s.processors = map[string]Notifier{
+		"submit_declaration": processors.NewSendDeclarationProcessor(botClient, logger, repo, txManager),
+		"add_income":         processors.NewAddIncomeProcessor(botClient, logger, repo, txManager),
+	}
+
+	return s
 }
 
 func (s *Scheduler) Start(ctx context.Context) {
-	ticker := time.NewTicker(s.interval)
+	s.logger.Info("scheduler started")
+	defer s.ticker.Stop()
 
-	go func() {
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				// для дебага
-				fmt.Println("Scheduler остановлен")
-				return
-			case t := <-ticker.C:
-				fmt.Println("Проверка напоминаний в:", t)
+	for {
+		select {
+		case <-ctx.Done():
+			s.logger.Info("scheduler stopped by context")
+			return
+		case <-s.ticker.C:
+			s.logger.Info("tick: fetching  tasks")
 
-				tasks, err := s.service.GetDueTasks(ctx)
-				if err != nil {
-					s.logger.Error("Ошибка при пометке:", err)
-					continue
-				}
-
-				if len(tasks) == 0 {
-					continue
-				}
-
-				for _, task := range tasks {
-					if err := s.bot.SendMessage(task.EntrepreneurID, "Заглушка по отпрравке деклеарации"); err != nil {
-						s.logger.Error("Ошибка при пометке:", err)
-						continue
+			now := s.clock.Now()
+			tasks, err := s.svc.GetDueTasks(ctx, now)
+			if err != nil {
+				s.logger.Errorf("error getting tasks: %v", err)
+				continue
+			}
+			for _, t := range tasks {
+				if proc, ok := s.processors[t.Type]; ok {
+					if err := proc.Process(ctx, t); err != nil {
+						s.logger.Errorf("processor error for task %v: %v", t, err)
 					}
-
-					if err := s.service.CompleteNotification(ctx, task.ID); err != nil {
-						s.logger.Error("Ошибка при пометке:", err)
-					}
+				} else {
+					s.logger.Error("no processor for task type %q", t.Type)
 				}
 			}
 		}
-	}()
+	}
 }
