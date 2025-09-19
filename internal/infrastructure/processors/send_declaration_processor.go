@@ -7,7 +7,6 @@ import (
 	"tax-helper/internal/infrastructure/db"
 	"tax-helper/internal/infrastructure/repository"
 	"tax-helper/internal/logger"
-	"tax-helper/internal/service/task"
 	"time"
 )
 
@@ -16,16 +15,14 @@ type TxManager interface {
 }
 type SendDeclarationProcessor struct {
 	bot       *tgbotapi.BotAPI
-	tasksS    task.TasksService
 	logger    logger.Logger
 	repo      repository.TasksRepository
 	txManager TxManager
 }
 
-func NewSendDeclarationProcessor(botClient *tgbotapi.BotAPI, tasksService task.TasksService, logger logger.Logger, repo repository.TasksRepository, txManager TxManager) *SendDeclarationProcessor {
+func NewSendDeclarationProcessor(botClient *tgbotapi.BotAPI, logger logger.Logger, repo repository.TasksRepository, txManager TxManager) *SendDeclarationProcessor {
 	return &SendDeclarationProcessor{
 		bot:       botClient,
-		tasksS:    tasksService,
 		logger:    logger,
 		repo:      repo,
 		txManager: txManager,
@@ -41,7 +38,7 @@ func (p *SendDeclarationProcessor) Process(ctx context.Context, t db.Tasks) erro
 	}
 
 	err := p.txManager.Transaction(ctx, func(txCtx context.Context) error {
-		if err := p.tasksS.CompleteNotification(txCtx, t.ID); err != nil {
+		if err := p.repo.MarkAsNotified(txCtx, t.ID); err != nil {
 			p.logger.Error("failed to mark finished task %v: %v", t, err)
 			return err
 		}

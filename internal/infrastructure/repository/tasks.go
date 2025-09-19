@@ -9,7 +9,7 @@ import (
 
 type TasksRepository interface {
 	CreateBatch(ctx context.Context, tasks []*domain.Task) error
-	GetReadyTasks(ctx context.Context, limit int, timeNow time.Time) ([]db.Tasks, error)
+	GetReadyTasks(ctx context.Context, timeNow time.Time) ([]db.Tasks, error)
 	MarkAsNotified(ctx context.Context, id int64) error
 }
 
@@ -34,12 +34,11 @@ func (r *tasksRepo) CreateBatch(ctx context.Context, tasks []*domain.Task) error
 	return r.db.Connection(ctx).Create(&models).Error
 }
 
-func (r *tasksRepo) GetReadyTasks(ctx context.Context, limit int, timeNow time.Time) ([]db.Tasks, error) {
+func (r *tasksRepo) GetReadyTasks(ctx context.Context, timeNow time.Time) ([]db.Tasks, error) {
 	var dbTasks []db.Tasks
 
 	if err := r.db.Connection(ctx).
 		Where("run_at >= ? AND status = ?", timeNow, "ready"). //Todo run_at >= ? или <=
-		Limit(limit).
 		Find(&dbTasks).Error; err != nil {
 		return nil, err
 	}

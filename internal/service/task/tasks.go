@@ -8,7 +8,7 @@ import (
 )
 
 type TasksService interface {
-	GetDueTasks(ctx context.Context, limit int, now time.Time) ([]db.Tasks, error)
+	GetDueTasks(ctx context.Context, now time.Time) ([]db.Tasks, error)
 	CompleteNotification(ctx context.Context, id int64) error
 }
 
@@ -20,8 +20,8 @@ func NewService(repo repository.TasksRepository) TasksService {
 	return &tasksService{repo: repo}
 }
 
-func (s *tasksService) GetDueTasks(ctx context.Context, limit int, timeNow time.Time) ([]db.Tasks, error) {
-	return s.repo.GetReadyTasks(ctx, limit, timeNow)
+func (s *tasksService) GetDueTasks(ctx context.Context, timeNow time.Time) ([]db.Tasks, error) {
+	return s.repo.GetReadyTasks(ctx, timeNow)
 }
 
 func (s *tasksService) CompleteNotification(ctx context.Context, id int64) error {

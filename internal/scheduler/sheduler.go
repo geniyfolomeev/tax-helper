@@ -60,8 +60,8 @@ func NewScheduler(
 	}
 
 	s.processors = map[string]Notifier{
-		"submit_declaration": processors.NewSendDeclarationProcessor(botClient, taskService, logger, repo, txManager),
-		"add_income":         processors.NewAddIncomeProcessor(botClient, taskService, logger, repo, txManager),
+		"submit_declaration": processors.NewSendDeclarationProcessor(botClient, logger, repo, txManager),
+		"add_income":         processors.NewAddIncomeProcessor(botClient, logger, repo, txManager),
 	}
 
 	return s
@@ -80,7 +80,7 @@ func (s *Scheduler) Start(ctx context.Context) {
 			s.logger.Info("tick: fetching  tasks")
 
 			now := s.clock.Now()
-			tasks, err := s.svc.GetDueTasks(ctx, 100, now)
+			tasks, err := s.svc.GetDueTasks(ctx, now)
 			if err != nil {
 				s.logger.Errorf("error getting tasks: %v", err)
 				continue

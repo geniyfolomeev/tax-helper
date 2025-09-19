@@ -7,20 +7,18 @@ import (
 	"tax-helper/internal/infrastructure/db"
 	"tax-helper/internal/infrastructure/repository"
 	"tax-helper/internal/logger"
-	"tax-helper/internal/service/task"
 	"time"
 )
 
 type AddIncomeProcessor struct {
 	bot       *tgbotapi.BotAPI
-	tasksS    task.TasksService
 	logger    logger.Logger
 	repo      repository.TasksRepository
 	txManager TxManager
 }
 
-func NewAddIncomeProcessor(botClient *tgbotapi.BotAPI, tasksService task.TasksService, logger logger.Logger, repo repository.TasksRepository, txManager TxManager) *AddIncomeProcessor {
-	return &AddIncomeProcessor{bot: botClient, tasksS: tasksService, logger: logger, repo: repo, txManager: txManager}
+func NewAddIncomeProcessor(botClient *tgbotapi.BotAPI, logger logger.Logger, repo repository.TasksRepository, txManager TxManager) *AddIncomeProcessor {
+	return &AddIncomeProcessor{bot: botClient, logger: logger, repo: repo, txManager: txManager}
 }
 
 func (p *AddIncomeProcessor) Process(ctx context.Context, t db.Tasks) error {
@@ -32,7 +30,7 @@ func (p *AddIncomeProcessor) Process(ctx context.Context, t db.Tasks) error {
 	}
 
 	err := p.txManager.Transaction(ctx, func(txCtx context.Context) error {
-		if err := p.tasksS.CompleteNotification(txCtx, t.ID); err != nil {
+		if err := p.repo.MarkAsNotified(txCtx, t.ID); err != nil {
 			p.logger.Info("failed to mark finished task %v: %v", t, err)
 			return err
 		}
